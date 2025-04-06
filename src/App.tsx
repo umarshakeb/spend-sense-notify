@@ -11,7 +11,9 @@ import Transactions from "./pages/Transactions";
 import Subscriptions from "./pages/Subscriptions";
 import Analytics from "./pages/Analytics";
 import SMSImport from "./pages/SMSImport";
-import Dashboard from "./pages/Dashboard";
+import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp";
+import { AuthProvider } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
 
@@ -21,15 +23,19 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/transactions" element={<Transactions />} />
-          <Route path="/subscriptions" element={<Subscriptions />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/sms-import" element={<SMSImport />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/subscriptions" element={<Subscriptions />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/sms-import" element={<SMSImport />} />
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="/signup" element={<SignUp />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
