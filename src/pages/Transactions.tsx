@@ -19,9 +19,10 @@ import {
 import { Card } from "@/components/ui/card";
 import { ArrowUpDown, ChevronDown, Download, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AddExpenseForm } from "@/components/transactions/AddExpenseForm";
 
 // Sample transaction data
-const transactionData = [
+const initialTransactionData = [
   {
     id: "tr1",
     date: "Apr 5, 2025",
@@ -105,10 +106,15 @@ const transactionData = [
 ];
 
 export default function Transactions() {
+  const [transactionData, setTransactionData] = useState(initialTransactionData);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["income", "expense"]);
+
+  const handleAddTransaction = (transaction: any) => {
+    setTransactionData([transaction, ...transactionData]);
+  };
 
   const handleSort = (column: string) => {
     if (sortBy === column) {
@@ -173,7 +179,7 @@ export default function Transactions() {
       </div>
 
       <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-wrap gap-2 items-center">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -208,10 +214,14 @@ export default function Transactions() {
           </DropdownMenu>
         </div>
 
-        <Button variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          <span>Export</span>
-        </Button>
+        <div className="flex gap-2">
+          <AddExpenseForm onAddTransaction={handleAddTransaction} />
+          
+          <Button variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            <span>Export</span>
+          </Button>
+        </div>
       </div>
 
       <Card>
