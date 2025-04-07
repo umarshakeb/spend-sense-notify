@@ -13,6 +13,11 @@ const subscriptionData = [
     renewalDate: "Apr 9, 2025",
     icon: Film,
     daysLeft: 3,
+    usage: {
+      hours: 20,
+      maxHours: 50,
+      percentage: 40
+    }
   },
   {
     id: 2,
@@ -21,6 +26,11 @@ const subscriptionData = [
     renewalDate: "Apr 10, 2025",
     icon: BookOpen,
     daysLeft: 4,
+    usage: {
+      hours: 4,
+      maxHours: 20,
+      percentage: 20
+    }
   },
   {
     id: 3,
@@ -29,6 +39,11 @@ const subscriptionData = [
     renewalDate: "Apr 8, 2025",
     icon: Music,
     daysLeft: 2,
+    usage: {
+      hours: 3,
+      maxHours: 30,
+      percentage: 10
+    }
   },
 ];
 
@@ -43,7 +58,7 @@ export function UpcomingRenewals() {
   };
   
   return (
-    <Card className="col-span-full md:col-span-1">
+    <Card className="h-full">
       <CardHeader className="flex flex-row items-center">
         <div className="flex-1">
           <CardTitle>Upcoming Renewals</CardTitle>
@@ -54,6 +69,8 @@ export function UpcomingRenewals() {
         <div className="space-y-6">
           {subscriptionData.map((subscription) => {
             const IconComponent = subscription.icon;
+            const lowUsage = subscription.usage.percentage < 30;
+            
             return (
               <div key={subscription.id} className="space-y-2">
                 <div className="flex items-center">
@@ -79,12 +96,21 @@ export function UpcomingRenewals() {
                 <div className="pt-2">
                   <div className="flex justify-between text-xs mb-1">
                     <span>Usage this month</span>
-                    <span>20 hours</span>
+                    <span>
+                      {subscription.usage.hours} hours
+                      {lowUsage && (
+                        <Badge variant="outline" className="ml-2 text-amber-500 border-amber-500">
+                          Low usage
+                        </Badge>
+                      )}
+                    </span>
                   </div>
                   <div className="w-full bg-muted rounded-full h-1.5">
                     <div 
-                      className="bg-primary h-1.5 rounded-full" 
-                      style={{ width: '75%' }}
+                      className={`h-1.5 rounded-full ${
+                        lowUsage ? "bg-amber-500" : "bg-primary"
+                      }`} 
+                      style={{ width: `${subscription.usage.percentage}%` }}
                     />
                   </div>
                 </div>

@@ -1,8 +1,8 @@
-
 import { SpendingSummary } from "@/components/dashboard/SpendingSummary";
 import { SpendingChart } from "@/components/dashboard/SpendingChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { UpcomingRenewals } from "@/components/dashboard/UpcomingRenewals";
+import { AiInsights } from "@/components/dashboard/AiInsights";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -109,6 +109,8 @@ export default function Dashboard() {
       
       <SpendingSummary />
       
+      <AiInsights />
+      
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2">
           <Card className="h-full">
@@ -122,17 +124,7 @@ export default function Dashboard() {
           </Card>
         </div>
         
-        <div>
-          <Card className="h-full">
-            <CardHeader className="pb-2">
-              <CardTitle>Upcoming Renewals</CardTitle>
-              <CardDescription>Subscriptions renewing soon</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <UpcomingRenewals />
-            </CardContent>
-          </Card>
-        </div>
+        <UpcomingRenewals />
       </div>
       
       <Card>
