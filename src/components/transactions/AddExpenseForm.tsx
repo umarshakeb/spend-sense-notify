@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { PlusCircle } from "lucide-react";
 import { categorizeTransaction } from "@/utils/expenseUtils";
+import { useAuth } from "@/hooks/useAuth";
 
 // Categories available for selection
 const CATEGORIES = [
@@ -61,6 +62,7 @@ const formSchema = z.object({
     message: "Please enter a valid date.",
   }),
   category: z.string().optional(),
+  type: z.enum(["expense", "income"]).default("expense"),
 });
 
 interface AddExpenseFormProps {
@@ -69,6 +71,7 @@ interface AddExpenseFormProps {
 
 export function AddExpenseForm({ onAddTransaction }: AddExpenseFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [needsManualCategory, setNeedsManualCategory] = useState(false);
   
@@ -79,10 +82,20 @@ export function AddExpenseForm({ onAddTransaction }: AddExpenseFormProps) {
       amount: "",
       date: new Date().toISOString().split('T')[0],
       category: undefined,
+      type: "expense",
     },
   });
   
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to add transactions",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // Try to auto-categorize based on description
     let category = values.category;
     
@@ -101,26 +114,23 @@ export function AddExpenseForm({ onAddTransaction }: AddExpenseFormProps) {
       }
     }
     
+    // Determine transaction type and prepare amount
+    const transactionType = values.type;
+    const transactionAmount = transactionType === "expense" 
+      ? -Math.abs(Number(values.amount)) 
+      : Math.abs(Number(values.amount));
+    
     // Generate a unique transaction ID
     const newTransaction = {
-      id: `tr-${Date.now()}`,
+      id: `tr-${Date.now()}`, // This will be replaced by Supabase's UUID
       description: values.description,
-      amount: -Math.abs(Number(values.amount)), // Make it negative for expenses
-      date: new Date(values.date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      }),
+      amount: transactionAmount,
+      date: values.date,
       category,
-      type: "expense",
+      type: transactionType,
     };
     
     onAddTransaction(newTransaction);
-    
-    toast({
-      title: "Expense added",
-      description: `$${Math.abs(Number(values.amount)).toFixed(2)} for ${values.description}`,
-    });
     
     // Reset form and close dialog
     form.reset();
@@ -133,14 +143,14 @@ export function AddExpenseForm({ onAddTransaction }: AddExpenseFormProps) {
       <DialogTrigger asChild>
         <Button className="gap-2">
           <PlusCircle className="h-4 w-4" />
-          <span>Add Expense</span>
+          <span>Add Transaction</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Expense</DialogTitle>
+          <DialogTitle>Add Transaction</DialogTitle>
           <DialogDescription>
-            Enter your expense details below.
+            Enter your transaction details below.
           </DialogDescription>
         </DialogHeader>
         
@@ -148,12 +158,37 @@ export function AddExpenseForm({ onAddTransaction }: AddExpenseFormProps) {
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 py-4">
             <FormField
               control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select transaction type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="expense">Expense</SelectItem>
+                      <SelectItem value="income">Income</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Input placeholder="Coffee, Groceries, etc." {...field} />
+                    <Input placeholder="Coffee, Groceries, Salary, etc." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -188,7 +223,7 @@ export function AddExpenseForm({ onAddTransaction }: AddExpenseFormProps) {
               )}
             />
             
-            {needsManualCategory && (
+            {(needsManualCategory || form.watch('type') === "income") && (
               <FormField
                 control={form.control}
                 name="category"
@@ -219,7 +254,7 @@ export function AddExpenseForm({ onAddTransaction }: AddExpenseFormProps) {
             )}
             
             <DialogFooter>
-              <Button type="submit">Add Expense</Button>
+              <Button type="submit">Add Transaction</Button>
             </DialogFooter>
           </form>
         </Form>

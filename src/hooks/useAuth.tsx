@@ -2,74 +2,68 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-  avatarUrl?: string;
-}
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name?: string) => Promise<void>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for stored JWT token and user data
-    const token = localStorage.getItem("auth_token");
-    const userData = localStorage.getItem("user_data");
-    
-    if (token && userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (error) {
-        // Invalid stored user data
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user_data");
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user && event === 'SIGNED_IN') {
+          // We use setTimeout to prevent deadlocks with Supabase auth
+          setTimeout(() => {
+            toast.success("Successfully signed in!");
+            navigate('/');
+          }, 0);
+        }
+        
+        if (event === 'SIGNED_OUT') {
+          // We use setTimeout to prevent deadlocks with Supabase auth
+          setTimeout(() => {
+            toast.success("Signed out successfully");
+            navigate('/signin');
+          }, 0);
+        }
       }
-    }
-    
-    setIsLoading(false);
-  }, []);
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       
-      // Simulate API call for authentication
-      // In a real app, this would be an actual API call to your backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Demo authentication - this should be replaced with actual backend authentication
-      if (email && password) {
-        // Mock successful authentication
-        const userData: User = {
-          id: "user-123",
-          email,
-          name: email.split("@")[0]
-        };
-        
-        // Store token and user data
-        const mockToken = "mock-jwt-token-" + Math.random().toString(36).substring(2);
-        localStorage.setItem("auth_token", mockToken);
-        localStorage.setItem("user_data", JSON.stringify(userData));
-        
-        setUser(userData);
-        toast.success("Successfully signed in!");
-        navigate('/');
-      } else {
-        throw new Error("Invalid credentials");
+      if (error) {
+        throw error;
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
@@ -83,28 +77,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Simulate API call for registration
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: {
+            name: name || email.split("@")[0]
+          }
+        }
+      });
       
-      if (email && password) {
-        // Mock successful registration
-        const userData: User = {
-          id: "user-" + Math.random().toString(36).substring(2),
-          email,
-          name: name || email.split("@")[0]
-        };
-        
-        // Store token and user data
-        const mockToken = "mock-jwt-token-" + Math.random().toString(36).substring(2);
-        localStorage.setItem("auth_token", mockToken);
-        localStorage.setItem("user_data", JSON.stringify(userData));
-        
-        setUser(userData);
-        toast.success("Account created successfully!");
-        navigate('/');
-      } else {
-        throw new Error("Please provide valid email and password");
+      if (error) {
+        throw error;
       }
+      
+      toast.success("Account created! Please check your email to verify your account.");
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
       throw error;
@@ -113,16 +100,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signOut = () => {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user_data");
-    setUser(null);
-    toast.success("Signed out successfully");
-    navigate('/signin');
+  const signOut = async () => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to sign out");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, isLoading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
