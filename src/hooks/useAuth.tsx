@@ -5,8 +5,16 @@ import { toast } from "sonner";
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
 
+// Define an extended user type that includes profile data
+interface UserWithProfile extends User {
+  profile?: {
+    name?: string | null;
+    avatar_url?: string | null;
+  };
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: UserWithProfile | null;
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
@@ -17,29 +25,70 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserWithProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Function to fetch user profile data
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      return null;
+    }
+  };
+
+  // Function to update user with profile data
+  const updateUserWithProfile = async (currentUser: User | null) => {
+    if (!currentUser) {
+      setUser(null);
+      return;
+    }
+
+    const profile = await fetchProfile(currentUser.id);
+    const userWithProfile = {
+      ...currentUser,
+      profile: profile || {}
+    };
+    
+    setUser(userWithProfile);
+  };
 
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
-        setUser(session?.user ?? null);
         
         if (session?.user && event === 'SIGNED_IN') {
           // We use setTimeout to prevent deadlocks with Supabase auth
-          setTimeout(() => {
+          setTimeout(async () => {
+            await updateUserWithProfile(session.user);
             toast.success("Successfully signed in!");
             navigate('/');
           }, 0);
-        }
-        
-        if (event === 'SIGNED_OUT') {
-          // We use setTimeout to prevent deadlocks with Supabase auth
+        } else if (session?.user) {
+          // Just update the user with profile, but no navigation
+          setTimeout(async () => {
+            await updateUserWithProfile(session.user);
+          }, 0);
+        } else if (event === 'SIGNED_OUT') {
+          // Handle sign out
           setTimeout(() => {
+            setUser(null);
             toast.success("Signed out successfully");
             navigate('/signin');
           }, 0);
@@ -48,9 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        await updateUserWithProfile(session.user);
+      }
+      
       setIsLoading(false);
     });
 

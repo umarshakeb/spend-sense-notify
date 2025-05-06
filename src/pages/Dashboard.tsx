@@ -1,3 +1,4 @@
+
 import { SpendingSummary } from "@/components/dashboard/SpendingSummary";
 import { SpendingChart } from "@/components/dashboard/SpendingChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
@@ -98,10 +99,13 @@ export default function Dashboard() {
     );
   }
 
+  // Get display name from profile or fallback to email
+  const displayName = user.profile?.name || user.email?.split('@')[0] || "User";
+
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Welcome back, {user.name || "User"}!</h1>
+        <h1 className="text-3xl font-bold">Welcome back, {displayName}!</h1>
         <p className="text-muted-foreground">
           Here's your financial overview for this month
         </p>
