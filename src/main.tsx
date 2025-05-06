@@ -17,9 +17,9 @@ const initApp = async () => {
       // Set up any mobile-specific functionality here
       console.log('Running as a native app on', Capacitor.getPlatform());
       
-      // Example: Set status bar color on iOS/Android
+      // Example: Set status bar color on iOS/Android using the correct import
       try {
-        const { StatusBar } = await import('@capacitor/core');
+        const { StatusBar } = await import('@capacitor/status-bar');
         StatusBar.setBackgroundColor({ color: '#ffffff' });
         StatusBar.setStyle({ style: 'dark' });
       } catch (err) {

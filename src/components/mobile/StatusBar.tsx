@@ -10,7 +10,8 @@ export function useStatusBar() {
         
         if (Capacitor.isNativePlatform()) {
           try {
-            const { StatusBar, Style } = await import('@capacitor/core');
+            // Import the StatusBar plugin correctly
+            const { StatusBar, Style } = await import('@capacitor/status-bar');
             
             // Set status bar with light text for dark backgrounds
             await StatusBar.setStyle({ style: Style.Dark });
