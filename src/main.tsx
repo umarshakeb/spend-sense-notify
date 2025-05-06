@@ -19,9 +19,9 @@ const initApp = async () => {
       
       // Example: Set status bar color on iOS/Android using the correct import
       try {
-        const { StatusBar } = await import('@capacitor/status-bar');
+        const { StatusBar, Style } = await import('@capacitor/status-bar');
         StatusBar.setBackgroundColor({ color: '#ffffff' });
-        StatusBar.setStyle({ style: 'dark' });
+        StatusBar.setStyle({ style: Style.Dark });
       } catch (err) {
         console.log('Status bar plugin not available');
       }
