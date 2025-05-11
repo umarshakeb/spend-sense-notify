@@ -2,7 +2,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.833ac519c5944587b603b7e2e8746851',
+  appId: 'com.lovable.spendsense',
   appName: 'spend-sense-notify',
   webDir: 'dist',
   server: {
