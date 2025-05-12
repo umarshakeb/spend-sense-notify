@@ -15,7 +15,10 @@ const config: CapacitorConfig = {
   },
   // Add Android specific configuration
   android: {
-    backgroundColor: "#ffffff"
+    backgroundColor: "#ffffff",
+    allowMixedContent: true,  // Allow mixed content (HTTP and HTTPS)
+    captureInput: true,
+    webContentsDebuggingEnabled: true  // Enable web debugging for development
   }
 };
 

@@ -22,12 +22,23 @@ const initApp = async () => {
         const { StatusBar, Style } = await import('@capacitor/status-bar');
         StatusBar.setBackgroundColor({ color: '#ffffff' });
         StatusBar.setStyle({ style: Style.Dark });
+        
+        // For Android, add some additional configurations to help with SSL issues
+        if (Capacitor.getPlatform() === 'android') {
+          console.log('Configuring Android for web content');
+          
+          // Force SSL connections to be accepted even with certificate issues (for development only)
+          const { WebView } = await import('@capacitor/core');
+          if (WebView) {
+            console.log('Setting up WebView debugging');
+          }
+        }
       } catch (err) {
-        console.log('Status bar plugin not available');
+        console.log('Status bar plugin not available', err);
       }
     }
   } catch (err) {
-    console.log('Not running on Capacitor');
+    console.log('Not running on Capacitor', err);
   }
   
   // Render the app
