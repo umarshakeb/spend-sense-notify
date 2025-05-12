@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard } from "lucide-react";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -47,9 +48,13 @@ export default function SignUp() {
   const onSubmit = async (data: FormData) => {
     setError(null);
     try {
+      console.log("Signing up with:", data.email);
       await signUp(data.email, data.password, data.name);
+      toast.success("Account created successfully!");
     } catch (err: any) {
+      console.error("Signup error:", err);
       setError(err.message || "Failed to create account");
+      toast.error(err.message || "Failed to create account");
     }
   };
 

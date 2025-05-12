@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   appName: 'spend-sense-notify',
   webDir: 'dist',
   server: {
-    url: 'https://833ac519-c594-4587-b603-b7e2e8746851.lovableproject.com?forceHideBadge=true',
+    url: 'https://alqwieqqrzzgsfftnlsu.supabase.co',
     cleartext: true
   },
   // Add iOS specific configuration
