@@ -6,8 +6,9 @@ const config: CapacitorConfig = {
   appName: 'spend-sense-notify',
   webDir: 'dist',
   server: {
-    url: 'https://alqwieqqrzzgsfftnlsu.supabase.co',
-    cleartext: true
+    androidScheme: 'https',
+    cleartext: true,
+    hostname: 'app', // Custom hostname instead of localhost
   },
   // Add iOS specific configuration
   ios: {
@@ -18,7 +19,7 @@ const config: CapacitorConfig = {
     backgroundColor: "#ffffff",
     allowMixedContent: true,  // Allow mixed content (HTTP and HTTPS)
     captureInput: true,
-    webContentsDebuggingEnabled: true  // Enable web debugging for development
+    webContentsDebuggingEnabled: true,  // Enable web debugging for development
   }
 };
 

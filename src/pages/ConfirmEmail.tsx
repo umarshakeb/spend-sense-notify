@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function ConfirmEmail() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
@@ -13,17 +14,19 @@ export default function ConfirmEmail() {
 
   useEffect(() => {
     const confirmEmail = async () => {
-      // Get type and token from URL query parameters
-      const params = new URLSearchParams(location.search);
-      const type = params.get("type");
-      const token = params.get("token");
-
-      if (!type || !token) {
-        setStatus("error");
-        return;
-      }
-
       try {
+        // Get type and token from URL query parameters
+        const params = new URLSearchParams(location.search);
+        const type = params.get("type");
+        const token = params.get("token");
+
+        if (!type || !token) {
+          console.error("Missing confirmation parameters");
+          toast.error("Invalid confirmation link");
+          setStatus("error");
+          return;
+        }
+
         // Process the confirmation with Supabase
         const { error } = await supabase.auth.verifyOtp({
           token_hash: token,
@@ -32,8 +35,10 @@ export default function ConfirmEmail() {
 
         if (error) {
           console.error("Verification error:", error);
+          toast.error(error.message || "Verification failed");
           setStatus("error");
         } else {
+          toast.success("Email successfully verified!");
           setStatus("success");
           // Automatically navigate to sign-in after 3 seconds on success
           setTimeout(() => {
@@ -42,6 +47,7 @@ export default function ConfirmEmail() {
         }
       } catch (err) {
         console.error("Verification exception:", err);
+        toast.error("Something went wrong during verification");
         setStatus("error");
       }
     };
@@ -69,7 +75,7 @@ export default function ConfirmEmail() {
           </CardTitle>
           <CardDescription>
             {status === "loading" && "Please wait while we verify your email address."}
-            {status === "success" && "Your email has been successfully verified. You can now sign in."}
+            {status === "success" && "Your email has been successfully verified. You will be redirected to sign in."}
             {status === "error" && "We couldn't verify your email. The link may be invalid or expired."}
           </CardDescription>
         </CardHeader>

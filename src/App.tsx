@@ -18,7 +18,15 @@ import ConfirmEmail from "./pages/ConfirmEmail";
 import { AuthProvider } from "./hooks/useAuth";
 import { SplashScreen } from "./components/mobile/SplashScreen";
 
-const queryClient = new QueryClient();
+// Create a new query client with retry configuration
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2, // Retry failed requests twice
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    },
+  },
+});
 
 const App = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -42,7 +50,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
+        <Sonner position="top-center" closeButton={true} richColors={true} />
         {isMobile && <SplashScreen />}
         <BrowserRouter>
           <AuthProvider>

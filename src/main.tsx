@@ -2,6 +2,7 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { toast } from 'sonner';
 
 // Initialize the app
 const initApp = async () => {
@@ -17,7 +18,6 @@ const initApp = async () => {
       // Set up any mobile-specific functionality here
       console.log('Running as a native app on', Capacitor.getPlatform());
       
-      // Example: Set status bar color on iOS/Android using the correct import
       try {
         const { StatusBar, Style } = await import('@capacitor/status-bar');
         StatusBar.setBackgroundColor({ color: '#ffffff' });
@@ -27,11 +27,22 @@ const initApp = async () => {
         if (Capacitor.getPlatform() === 'android') {
           console.log('Configuring Android for web content');
           
-          // Force SSL connections to be accepted even with certificate issues (for development only)
-          const { WebView } = await import('@capacitor/core');
-          if (WebView) {
-            console.log('Setting up WebView debugging');
-          }
+          // Add custom error handler for SSL errors
+          window.addEventListener('error', (event) => {
+            if (event.message && (
+              event.message.includes('SSL') || 
+              event.message.includes('certificate') || 
+              event.message.includes('ERR_SSL_PROTOCOL_ERROR')
+            )) {
+              console.warn('SSL error detected:', event.message);
+              toast.error("Connection error. Please check your internet connection.");
+              
+              // Prevent the default error handling
+              event.preventDefault();
+              return true;
+            }
+            return false;
+          });
         }
       } catch (err) {
         console.log('Status bar plugin not available', err);
