@@ -1,1 +1,12 @@
+
 project_id = "alqwieqqrzzgsfftnlsu"
+
+# This will be used for Site URL in the Supabase auth settings
+[auth]
+site_url = "https://alqwieqqrzzgsfftnlsu.supabase.co"
+additional_redirect_urls = [
+  "https://alqwieqqrzzgsfftnlsu.lovable.app/*", 
+  "capacitor://app/*", 
+  "http://localhost:*/*",
+  "http://app:*/*"
+]
