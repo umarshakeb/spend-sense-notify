@@ -1,8 +1,22 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 // Sample data
 const weeklyData = [
@@ -26,43 +40,77 @@ const monthlyData = [
 
 export function SpendingChart() {
   const [activeTab, setActiveTab] = useState("weekly");
+  const isMobile = useMediaQuery("(max-width: 640px)");
+
+  const chartConfig = {
+    income: {
+      label: "Income",
+      theme: {
+        light: "#108DA8",
+        dark: "#108DA8",
+      },
+    },
+    expense: {
+      label: "Expense",
+      theme: {
+        light: "#FF7043",
+        dark: "#FF7043",
+      },
+    },
+  };
 
   return (
-    <Card className="col-span-full">
-      <CardHeader>
-        <CardTitle>Income vs Expenses</CardTitle>
-        <Tabs 
-          defaultValue="weekly" 
-          className="w-[220px]"
-          onValueChange={setActiveTab}
-        >
-          <TabsList>
-            <TabsTrigger value="weekly">Weekly</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </CardHeader>
-      <CardContent className="p-1 h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={activeTab === "weekly" ? weeklyData : monthlyData}
-            margin={{
-              top: 5,
-              right: 30,
-              left: 20,
-              bottom: 5,
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="income" fill="#108DA8" name="Income" />
-            <Bar dataKey="expense" fill="#FF7043" name="Expense" />
-          </BarChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
+    <div className="w-full">
+      <Tabs 
+        defaultValue="weekly" 
+        className="w-[220px]"
+        onValueChange={setActiveTab}
+      >
+        <TabsList>
+          <TabsTrigger value="weekly">Weekly</TabsTrigger>
+          <TabsTrigger value="monthly">Monthly</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      
+      <div className="mt-2 h-[280px]">
+        <ChartContainer config={chartConfig} className="h-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={activeTab === "weekly" ? weeklyData : monthlyData}
+              margin={{
+                top: 20,
+                right: isMobile ? 10 : 30,
+                left: isMobile ? 0 : 20,
+                bottom: 5,
+              }}
+              barSize={isMobile ? 12 : 20}
+              barGap={isMobile ? 2 : 8}
+            >
+              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+              <XAxis 
+                dataKey="name" 
+                fontSize={isMobile ? 10 : 12}
+                tickMargin={5}
+              />
+              <YAxis 
+                fontSize={isMobile ? 10 : 12} 
+                width={isMobile ? 30 : 40}
+                tickFormatter={(value) => isMobile ? `${value / 1000}k` : value}
+              />
+              <ChartTooltip 
+                content={<ChartTooltipContent nameKey="name" />} 
+              />
+              <Legend
+                wrapperStyle={{ fontSize: isMobile ? 10 : 12 }}
+                verticalAlign="bottom"
+                height={30}
+              />
+              <Bar dataKey="income" fill="var(--color-income)" name="Income" />
+              <Bar dataKey="expense" fill="var(--color-expense)" name="Expense" />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </div>
+    </div>
   );
 }

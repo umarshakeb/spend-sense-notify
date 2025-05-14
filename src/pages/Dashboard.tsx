@@ -4,6 +4,8 @@ import { SpendingChart } from "@/components/dashboard/SpendingChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { UpcomingRenewals } from "@/components/dashboard/UpcomingRenewals";
 import { AiInsights } from "@/components/dashboard/AiInsights";
+import { SMSPermissionRequest } from "@/components/dashboard/SMSPermissionRequest";
+import { LoanRepaymentCard } from "@/components/dashboard/LoanRepaymentCard";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,9 +109,13 @@ export default function Dashboard() {
       <div>
         <h1 className="text-3xl font-bold">Welcome back, {displayName}!</h1>
         <p className="text-muted-foreground">
-          Here's your financial overview for this month
+          Here's your financial overview
         </p>
       </div>
+      
+      <SMSPermissionRequest />
+      
+      <LoanRepaymentCard />
       
       <SpendingSummary />
       
@@ -122,7 +128,7 @@ export default function Dashboard() {
               <CardTitle>Spending Trends</CardTitle>
               <CardDescription>Your spending patterns over time</CardDescription>
             </CardHeader>
-            <CardContent className="h-[300px]">
+            <CardContent className="pt-0">
               <SpendingChart />
             </CardContent>
           </Card>

@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user?.profile?.name) {
@@ -28,11 +30,13 @@ const Profile = () => {
     setLoading(true);
     try {
       // In a real app, this would update the profile in the database
-      // This is just a placeholder for now
       toast({
         title: "Profile updated",
         description: "Your profile information has been saved."
       });
+      
+      // Navigate back to home after successful update
+      setTimeout(() => navigate('/'), 1000);
     } catch (error) {
       toast({
         title: "Error",
@@ -46,8 +50,8 @@ const Profile = () => {
   };
 
   return (
-    <AppLayout>
-      <div className="container mx-auto py-8">
+    <AppLayout showBackButton={true}>
+      <div className="container mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-6">Your Profile</h1>
         
         <div className="grid gap-6 md:grid-cols-[250px_1fr] lg:grid-cols-[300px_1fr]">
@@ -91,9 +95,18 @@ const Profile = () => {
                       disabled 
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Saving..." : "Save Changes"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button type="submit" className="flex-1" disabled={loading}>
+                      {loading ? "Saving..." : "Save Changes"}
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => navigate('/')}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               </form>
             </CardContent>

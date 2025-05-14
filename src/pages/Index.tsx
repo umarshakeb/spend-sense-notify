@@ -4,7 +4,7 @@ import Dashboard from "./Dashboard";
 
 const Index = () => {
   return (
-    <AppLayout>
+    <AppLayout showBackButton={false}>
       <Dashboard />
     </AppLayout>
   );
