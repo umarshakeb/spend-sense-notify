@@ -15,6 +15,8 @@ import SMSImport from "./pages/SMSImport";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import ConfirmEmail from "./pages/ConfirmEmail";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 import { AuthProvider } from "./hooks/useAuth";
 import { SplashScreen } from "./components/mobile/SplashScreen";
 
@@ -63,6 +65,8 @@ const App = () => {
               <Route path="/signin" element={<SignIn />} />
               <Route path="/signup" element={<SignUp />} />
               <Route path="/confirm" element={<ConfirmEmail />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/settings" element={<Settings />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
