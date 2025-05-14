@@ -61,6 +61,14 @@ const SUBSCRIPTION_PATTERNS = [
   }
 ];
 
+// Add bank patterns to identify real bank SMS messages
+const BANK_NAME_PATTERNS = [
+  /(?:HDFC|SBI|ICICI|Axis|Kotak|PNB|Bank of Baroda|Canara|Yes Bank|Union Bank)/i,
+  /(?:Federal|Indian Bank|UCO|Indian Overseas|Dena Bank|Bank of Maharashtra)/i,
+  // Add international banks
+  /(?:Citi|HSBC|Standard Chartered|Bank of America|Wells Fargo|Chase|JPMorgan)/i
+];
+
 // Function to extract amount from text using patterns
 function extractAmount(text: string, patterns: { pattern: RegExp, category: string }[]): { amount: number | null, category: string | null } {
   for (const { pattern, category } of patterns) {
@@ -90,6 +98,11 @@ function identifySubscription(text: string): { isSubscription: boolean, name: st
   return { isSubscription: false, name: null, category: '', platform: '' };
 }
 
+// Function to check if a message is from a bank
+export function isBankMessage(text: string): boolean {
+  return BANK_NAME_PATTERNS.some(pattern => pattern.test(text));
+}
+
 // Function to categorize transaction
 function categorizeTransaction(text: string): string {
   if (/(?:grocery|food|restaurant|cafe|dining)/i.test(text)) return 'Food & Dining';
@@ -109,7 +122,10 @@ export function parseSMS(messages: { body: string, date: Date }[]): {
   const transactions: Transaction[] = [];
   const subscriptions: Subscription[] = [];
   
-  messages.forEach((message, index) => {
+  // Filter to only process bank messages
+  const bankMessages = messages.filter(msg => isBankMessage(msg.body));
+  
+  bankMessages.forEach((message, index) => {
     const { body, date } = message;
     
     // Check for expenses first
@@ -157,4 +173,33 @@ export function parseSMS(messages: { body: string, date: Date }[]): {
   });
   
   return { transactions, subscriptions };
+}
+
+// New utility to save parsed SMS data to localStorage
+export function saveSMSData(transactions: Transaction[], subscriptions: Subscription[], balance: number | null) {
+  try {
+    localStorage.setItem('sms_transactions', JSON.stringify(transactions));
+    localStorage.setItem('sms_subscriptions', JSON.stringify(subscriptions));
+    
+    if (balance !== null) {
+      localStorage.setItem('sms_balance', balance.toString());
+    }
+    
+    // Dispatch event to notify components that data has been updated
+    window.dispatchEvent(new Event('sms_data_updated'));
+    
+    return true;
+  } catch (error) {
+    console.error("Error saving SMS data to localStorage:", error);
+    return false;
+  }
+}
+
+// Utility to get real-world bank names for sample SMS
+export function getRandomBankName(): string {
+  const banks = [
+    "HDFC Bank", "ICICI Bank", "SBI", "Axis Bank", 
+    "Kotak Bank", "Yes Bank", "PNB", "Canara Bank"
+  ];
+  return banks[Math.floor(Math.random() * banks.length)];
 }

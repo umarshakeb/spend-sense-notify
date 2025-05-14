@@ -78,20 +78,20 @@ export const SMSPermissionRequest = () => {
   };
 
   return (
-    <Card className="border-dashed border-2 mb-6">
+    <Card className="border-dashed border-2 mb-6 w-full max-w-full overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MessageSquareText className="h-5 w-5 text-primary" />
-          Setup SMS Transaction Tracking
+        <CardTitle className="flex items-center gap-2 flex-wrap">
+          <MessageSquareText className="h-5 w-5 text-primary flex-shrink-0" />
+          <span className="flex-shrink">Setup SMS Transaction Tracking</span>
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="break-normal">
           Automatically track your expenses by analyzing your bank SMS messages
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-3 text-sm">
-          <ShieldCheck className="h-5 w-5 text-green-500 flex-shrink-0" />
-          <p>
+        <div className="flex items-start gap-3 text-sm">
+          <ShieldCheck className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+          <p className="break-normal">
             Your messages are analyzed on your device only and never shared with anyone.
             We only read bank transaction messages to help you track your spending.
           </p>

@@ -15,13 +15,15 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { parseSMS, Transaction, Subscription } from "@/utils/smsParser";
+import { parseSMS, Transaction, Subscription, saveSMSData, getRandomBankName } from "@/utils/smsParser";
 import { useToast } from "@/components/ui/use-toast";
-import { Check, MessageSquareText, Inbox, Loader2, RefreshCw } from "lucide-react";
+import { Check, MessageSquareText, Inbox, Loader2, RefreshCw, IndianRupee } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const formSchema = z.object({
   smsText: z.string().min(10, {
@@ -36,6 +38,8 @@ interface SMSMessage {
 
 export default function SMSImport() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [importedTransactions, setImportedTransactions] = useState<Transaction[]>([]);
   const [importedSubscriptions, setImportedSubscriptions] = useState<Subscription[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -79,23 +83,36 @@ export default function SMSImport() {
     // Simulate delay for message processing
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Sample bank SMS messages
+    // Generate realistic bank names for samples
+    const bankName1 = getRandomBankName();
+    const bankName2 = getRandomBankName();
+    const bankName3 = getRandomBankName();
+    
+    // Sample bank SMS messages with more realistic data
     const sampleMessages: SMSMessage[] = [
       {
-        body: "ABC Bank: Your Acct XX1234 has been debited INR 499.00 on 14-05-2025 for Netflix subscription. Avl Bal: INR 24,532.75",
+        body: `${bankName1}: Your Acct XX1234 has been debited INR 499.00 on 14-05-2025 for Netflix subscription. Avl Bal: INR 24,532.75`,
         date: new Date(2025, 4, 14)
       },
       {
-        body: "ABC Bank: Your Acct XX1234 has been debited INR 750.00 on 13-05-2025 for Food Order from Swiggy. Avl Bal: INR 25,031.75",
+        body: `${bankName1}: Your Acct XX1234 has been debited INR 750.00 on 13-05-2025 for Food Order from Swiggy. Avl Bal: INR 25,031.75`,
         date: new Date(2025, 4, 13)
       },
       {
-        body: "ABC Bank: Your Acct XX1234 has been credited INR 45,000.00 on 01-05-2025 by SALARY/ABC COMPANY. Avl Bal: INR 67,281.75",
+        body: `${bankName2}: Your Acct XX1234 has been credited INR 45,000.00 on 01-05-2025 by SALARY/ABC COMPANY. Avl Bal: INR 67,281.75`,
         date: new Date(2025, 4, 1)
       },
       {
-        body: "ABC Bank: Your Acct XX1234 has been debited INR 199.00 on 12-05-2025 for Spotify Premium. Avl Bal: INR 25,781.75",
+        body: `${bankName1}: Your Acct XX1234 has been debited INR 199.00 on 12-05-2025 for Spotify Premium. Avl Bal: INR 25,781.75`,
         date: new Date(2025, 4, 12)
+      },
+      {
+        body: `${bankName3}: INR 2,340.00 debited from your account XX5678 for Amazon.in purchase on 10-05-2025. Avl Bal: INR 31,450.80`,
+        date: new Date(2025, 4, 10)
+      },
+      {
+        body: `${bankName2}: INR 899.00 spent at Flipkart via UPI on 09-05-2025. Avl bal: INR 33,790.80`,
+        date: new Date(2025, 4, 9)
       }
     ];
     
@@ -104,13 +121,17 @@ export default function SMSImport() {
       const latestMessage = sampleMessages[0];
       const balanceMatch = latestMessage.body.match(/Avl Bal: INR ([0-9,.]+)/);
       if (balanceMatch && balanceMatch[1]) {
-        setBalance(parseFloat(balanceMatch[1].replace(/,/g, '')));
+        const balanceValue = parseFloat(balanceMatch[1].replace(/,/g, ''));
+        setBalance(balanceValue);
       }
       
       // Parse the messages
       const { transactions, subscriptions } = parseSMS(sampleMessages);
       setImportedTransactions(transactions);
       setImportedSubscriptions(subscriptions);
+      
+      // Save the data to localStorage so dashboard can use it
+      saveSMSData(transactions, subscriptions, balance);
       
       toast({
         title: "SMS Analysis Complete",
@@ -147,7 +168,13 @@ export default function SMSImport() {
       // Try to extract balance information
       const balanceMatch = values.smsText.match(/Avl Bal: INR ([0-9,.]+)/);
       if (balanceMatch && balanceMatch[1]) {
-        setBalance(parseFloat(balanceMatch[1].replace(/,/g, '')));
+        const balanceValue = parseFloat(balanceMatch[1].replace(/,/g, ''));
+        setBalance(balanceValue);
+        
+        // Save to localStorage
+        saveSMSData(transactions, subscriptions, balanceValue);
+      } else {
+        saveSMSData(transactions, subscriptions, balance);
       }
       
       toast({
@@ -165,9 +192,21 @@ export default function SMSImport() {
     }
   }
 
+  const handleImportAll = () => {
+    toast({
+      title: "Transactions Imported",
+      description: "All transactions have been added to your dashboard.",
+    });
+    
+    // Wait a moment then navigate back to dashboard
+    setTimeout(() => {
+      navigate('/');
+    }, 1500);
+  };
+
   return (
     <AppLayout showBackButton={true}>
-      <div className="container mx-auto py-6 space-y-6">
+      <div className="container mx-auto py-6 space-y-6 px-3 sm:px-6">
         <div>
           <h1 className="text-3xl font-bold">SMS Import</h1>
           <p className="text-muted-foreground">
@@ -193,13 +232,14 @@ export default function SMSImport() {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
-            <Card>
+            <Card className="w-full">
               {balance !== null && (
                 <div className="p-4 bg-emerald-50 dark:bg-emerald-950 border-b border-emerald-200 dark:border-emerald-900 rounded-t-lg">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Current Balance</span>
-                    <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
-                      ₹{balance.toLocaleString('en-IN')}
+                    <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300 flex items-center">
+                      <IndianRupee className="h-4 w-4 mr-1" />
+                      {balance.toLocaleString('en-IN')}
                     </span>
                   </div>
                 </div>
@@ -271,7 +311,7 @@ export default function SMSImport() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="w-full">
               <CardHeader className="pb-2">
                 <CardTitle>Results</CardTitle>
                 <CardDescription>
@@ -304,13 +344,13 @@ export default function SMSImport() {
                         ))}
                       </div>
                     ) : importedTransactions.length > 0 ? (
-                      <div className="space-y-4">
+                      <div className="space-y-4 max-h-[300px] overflow-y-auto">
                         {importedTransactions.map((transaction) => (
                           <div key={transaction.id} className="flex items-center border-b pb-2">
                             <div className="mr-2">
                               <Check className="h-5 w-5 text-green-500" />
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <div className="font-medium">{transaction.category}</div>
                               <div className="text-sm text-muted-foreground truncate max-w-xs">
                                 {transaction.description}
@@ -348,23 +388,24 @@ export default function SMSImport() {
                         ))}
                       </div>
                     ) : importedSubscriptions.length > 0 ? (
-                      <div className="space-y-4">
+                      <div className="space-y-4 max-h-[300px] overflow-y-auto">
                         {importedSubscriptions.map((subscription) => (
                           <div key={subscription.id} className="flex items-center border-b pb-2">
                             <div className="mr-2">
                               <Check className="h-5 w-5 text-green-500" />
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <div className="font-medium">{subscription.name}</div>
                               <div className="text-sm text-muted-foreground">
                                 Renews on {subscription.renewalDate.toLocaleDateString()}
                               </div>
                             </div>
-                            <div>
-                              <span className="font-medium">
-                                ₹{subscription.amount.toLocaleString('en-IN')}
+                            <div className="flex flex-col items-end">
+                              <span className="font-medium flex items-center whitespace-nowrap">
+                                <IndianRupee className="h-3 w-3 mr-0.5" />
+                                {subscription.amount.toLocaleString('en-IN')}
                               </span>
-                              <Badge variant="outline" className="ml-2">{subscription.category}</Badge>
+                              <Badge variant="outline" className="mt-1">{subscription.category}</Badge>
                             </div>
                           </div>
                         ))}
@@ -380,7 +421,11 @@ export default function SMSImport() {
                 </Tabs>
               </CardContent>
               <CardFooter className="flex justify-end">
-                <Button variant="default" disabled={importedTransactions.length === 0}>
+                <Button 
+                  variant="default" 
+                  disabled={importedTransactions.length === 0}
+                  onClick={handleImportAll}
+                >
                   Import All Transactions
                 </Button>
               </CardFooter>

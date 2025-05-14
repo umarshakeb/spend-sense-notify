@@ -20,6 +20,13 @@ import Settings from "./pages/Settings";
 import { AuthProvider } from "./hooks/useAuth";
 import { SplashScreen } from "./components/mobile/SplashScreen";
 
+// Add event interface for TypeScript
+declare global {
+  interface WindowEventMap {
+    'sms_data_updated': Event;
+  }
+}
+
 // Create a new query client with retry configuration
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +47,28 @@ const App = () => {
         // Dynamic import to avoid issues in browsers that don't support Capacitor
         const { Capacitor } = await import('@capacitor/core');
         setIsMobile(Capacitor.isNativePlatform());
+        
+        // If running on a mobile device, apply additional device-specific settings
+        if (Capacitor.isNativePlatform()) {
+          try {
+            // Import status bar plugin dynamically
+            const { StatusBar, Style } = await import('@capacitor/status-bar');
+            
+            // Set status bar style
+            await StatusBar.setStyle({ style: Style.Light });
+            
+            // Make sure it's visible
+            await StatusBar.show();
+          } catch (err) {
+            console.log('Status bar plugin not available', err);
+          }
+          
+          // Disable viewport zooming on iOS and apply safe area insets
+          const meta = document.createElement('meta');
+          meta.name = 'viewport';
+          meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+          document.getElementsByTagName('head')[0].appendChild(meta);
+        }
       } catch (error) {
         console.log('Not running on Capacitor');
       }
@@ -51,27 +80,29 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner position="top-center" closeButton={true} richColors={true} />
-        {isMobile && <SplashScreen />}
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/transactions" element={<Transactions />} />
-              <Route path="/subscriptions" element={<Subscriptions />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/sms-import" element={<SMSImport />} />
-              <Route path="/signin" element={<SignIn />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/confirm" element={<ConfirmEmail />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/settings" element={<Settings />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
+        <div className="App w-full max-w-full overflow-x-hidden">
+          <Toaster />
+          <Sonner position="top-center" closeButton={true} richColors={true} />
+          {isMobile && <SplashScreen />}
+          <BrowserRouter>
+            <AuthProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/transactions" element={<Transactions />} />
+                <Route path="/subscriptions" element={<Subscriptions />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/sms-import" element={<SMSImport />} />
+                <Route path="/signin" element={<SignIn />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/confirm" element={<ConfirmEmail />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
+          </BrowserRouter>
+        </div>
       </TooltipProvider>
     </QueryClientProvider>
   );
