@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -104,6 +105,22 @@
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
+.pt-safe-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.pb-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.mt-safe-top {
+  margin-top: env(safe-area-inset-top, 0);
+}
+
+.mb-safe-bottom {
+  margin-bottom: env(safe-area-inset-bottom, 0);
+}
+
 /* Fix chart display on mobile */
 @media (max-width: 640px) {
   .recharts-wrapper .recharts-cartesian-grid-horizontal line,
@@ -113,10 +130,28 @@
   
   .recharts-wrapper .recharts-label,
   .recharts-wrapper .recharts-text {
+    font-size: 9px;
+    fill-opacity: 0.7;
+  }
+  
+  .recharts-wrapper .recharts-legend-item-text {
     font-size: 10px;
   }
   
   .recharts-tooltip-wrapper {
     max-width: 80vw;
+  }
+
+  /* Simplify charts on mobile */
+  .recharts-cartesian-axis-tick-value {
+    font-size: 8px;
+  }
+}
+
+/* Additional mobile optimizations */
+@media (max-width: 480px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }
