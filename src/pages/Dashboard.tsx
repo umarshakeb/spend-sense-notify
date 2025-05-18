@@ -1,4 +1,3 @@
-
 import { SpendingSummary } from "@/components/dashboard/SpendingSummary";
 import { SpendingChart } from "@/components/dashboard/SpendingChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
@@ -9,12 +8,20 @@ import { LoanRepaymentCard } from "@/components/dashboard/LoanRepaymentCard";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MessageSquareText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [smsPermissionAsked, setSmsPermissionAsked] = useState(false);
+
+  useEffect(() => {
+    // Check if we've already asked for SMS permission
+    const permissionAsked = localStorage.getItem('sms_permission_asked') === 'true';
+    setSmsPermissionAsked(permissionAsked);
+  }, []);
 
   if (!user) {
     return (
@@ -113,7 +120,29 @@ export default function Dashboard() {
         </p>
       </div>
       
-      <SMSPermissionRequest />
+      {/* Show SMS permission card if not asked before, or button to re-open if already asked */}
+      {!smsPermissionAsked ? (
+        <SMSPermissionRequest />
+      ) : (
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-sm text-muted-foreground">
+            Want to update your transaction data?
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              // Clear the permission asked flag and refresh
+              localStorage.removeItem('sms_permission_asked');
+              setSmsPermissionAsked(false);
+            }}
+            className="flex items-center gap-2"
+          >
+            <MessageSquareText className="h-4 w-4" />
+            Re-scan Messages
+          </Button>
+        </div>
+      )}
       
       <LoanRepaymentCard />
       

@@ -18,6 +18,12 @@ export const SMSPermissionRequest = () => {
       try {
         const { Capacitor } = await import('@capacitor/core');
         setIsMobileDevice(Capacitor.isNativePlatform());
+        
+        // Try to automatically request permission if on a mobile device
+        // and if we haven't already asked for it
+        if (Capacitor.isNativePlatform() && !localStorage.getItem('sms_permission_asked')) {
+          requestSMSPermission();
+        }
       } catch (error) {
         setIsMobileDevice(false);
       }
@@ -29,6 +35,7 @@ export const SMSPermissionRequest = () => {
   const requestSMSPermission = async () => {
     setIsLoading(true);
     setHasAskedForPermission(true);
+    localStorage.setItem('sms_permission_asked', 'true');
     
     try {
       // Check if we're on a real mobile device
@@ -69,7 +76,7 @@ export const SMSPermissionRequest = () => {
       console.error("Error requesting SMS permission:", error);
       toast({
         title: "Permission Error",
-        description: "Unable to access SMS. Please try again or use manual import.",
+        description: "Unable to access SMS. Please try again or use manual input.",
         variant: "destructive",
       });
     } finally {
@@ -77,36 +84,38 @@ export const SMSPermissionRequest = () => {
     }
   };
 
+  // Hide the card if we've already asked for permission
+  if (localStorage.getItem('sms_permission_asked') && !isLoading) {
+    return null;
+  }
+
   return (
-    <Card className="border-dashed border-2 mb-6 w-full max-w-full overflow-hidden">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 flex-wrap">
+    <Card className="border-dashed border-2 mb-6 w-full max-w-full">
+      <CardHeader className="p-4">
+        <CardTitle className="flex items-center gap-2 text-lg">
           <MessageSquareText className="h-5 w-5 text-primary flex-shrink-0" />
-          <span className="flex-shrink">Setup SMS Transaction Tracking</span>
+          <span>Setup SMS Transaction Tracking</span>
         </CardTitle>
-        <CardDescription className="break-normal">
-          Automatically track your expenses by analyzing your bank SMS messages
+        <CardDescription className="text-sm">
+          Automatically track expenses by analyzing bank SMS
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex items-start gap-3 text-sm">
-          <ShieldCheck className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-          <p className="break-normal">
-            Your messages are analyzed on your device only and never shared with anyone.
-            We only read bank transaction messages to help you track your spending.
+      <CardContent className="p-4 pt-0">
+        <div className="flex items-start gap-2 text-sm">
+          <ShieldCheck className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+          <p>
+            Messages analyzed on-device only. We only read bank messages to track spending.
           </p>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="p-4 pt-0">
         <Button 
           onClick={requestSMSPermission}
-          className="w-full sm:w-auto"
-          disabled={hasAskedForPermission && isLoading}
+          className="w-full"
+          disabled={isLoading}
         >
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {hasAskedForPermission 
-            ? (isLoading ? "Analyzing Messages..." : "Permission Granted") 
-            : "Allow SMS Access"}
+          {isLoading ? "Analyzing Messages..." : "Allow SMS Access"}
         </Button>
       </CardFooter>
     </Card>

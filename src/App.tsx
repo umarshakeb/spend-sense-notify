@@ -19,6 +19,7 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import { AuthProvider } from "./hooks/useAuth";
 import { SplashScreen } from "./components/mobile/SplashScreen";
+import { toast } from "./components/ui/use-toast";
 
 // Add event interface for TypeScript
 declare global {
@@ -39,6 +40,7 @@ const queryClient = new QueryClient({
 
 const App = () => {
   const [isMobile, setIsMobile] = useState(false);
+  const [permissionsChecked, setPermissionsChecked] = useState(false);
 
   useEffect(() => {
     // Check if running as a mobile app
@@ -46,10 +48,11 @@ const App = () => {
       try {
         // Dynamic import to avoid issues in browsers that don't support Capacitor
         const { Capacitor } = await import('@capacitor/core');
-        setIsMobile(Capacitor.isNativePlatform());
+        const isMobileDevice = Capacitor.isNativePlatform();
+        setIsMobile(isMobileDevice);
         
         // If running on a mobile device, apply additional device-specific settings
-        if (Capacitor.isNativePlatform()) {
+        if (isMobileDevice) {
           try {
             // Import status bar plugin dynamically
             const { StatusBar, Style } = await import('@capacitor/status-bar');
@@ -59,8 +62,25 @@ const App = () => {
             
             // Make sure it's visible
             await StatusBar.show();
+            
+            // Check for SMS permissions on first launch
+            const permissionAsked = localStorage.getItem('sms_permission_asked') === 'true';
+            
+            // Only prompt on first launch, or we can add a setting to re-prompt
+            if (!permissionAsked) {
+              toast({
+                title: "Welcome to SpendSense",
+                description: "Please allow access to SMS to track your transactions automatically.",
+              });
+              
+              // Don't mark as asked yet - that happens when they actually grant permission
+              // This will cause the permission card to show on dashboard
+            }
+            
+            setPermissionsChecked(true);
           } catch (err) {
             console.log('Status bar plugin not available', err);
+            setPermissionsChecked(true);
           }
           
           // Disable viewport zooming on iOS and apply safe area insets
@@ -68,9 +88,12 @@ const App = () => {
           meta.name = 'viewport';
           meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
           document.getElementsByTagName('head')[0].appendChild(meta);
+        } else {
+          setPermissionsChecked(true);
         }
       } catch (error) {
         console.log('Not running on Capacitor');
+        setPermissionsChecked(true);
       }
     };
 

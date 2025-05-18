@@ -47,6 +47,15 @@ const initApp = async () => {
       } catch (err) {
         console.log('Status bar plugin not available', err);
       }
+      
+      // Show initial permission request on first app launch
+      // We'll check if this is the first launch
+      if (!localStorage.getItem('app_first_launch')) {
+        localStorage.setItem('app_first_launch', 'true');
+        // In a real app, we would request SMS permissions here using a Capacitor plugin
+        // For now, just set a flag that we'll check in the SMSPermissionRequest component
+        console.log('First app launch, ready to request SMS permissions');
+      }
     }
   } catch (err) {
     console.log('Not running on Capacitor', err);
