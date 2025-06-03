@@ -27,7 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserWithProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Only true during initial load
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   // Function to fetch user profile data
@@ -68,62 +68,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        if (!mounted) return;
+        
+        console.log('Auth state change:', event, session?.user?.email);
         setSession(session);
         
         if (session?.user && event === 'SIGNED_IN') {
-          // We use setTimeout to prevent deadlocks with Supabase auth
-          setTimeout(async () => {
-            await updateUserWithProfile(session.user);
-            toast.success("Successfully signed in!");
-            navigate('/');
-          }, 0);
+          await updateUserWithProfile(session.user);
+          toast.success("Successfully signed in!");
+          navigate('/');
         } else if (session?.user) {
-          // Just update the user with profile, but no navigation
-          setTimeout(async () => {
-            await updateUserWithProfile(session.user);
-          }, 0);
+          await updateUserWithProfile(session.user);
         } else if (event === 'SIGNED_OUT') {
-          // Handle sign out
-          setTimeout(() => {
-            setUser(null);
-            toast.success("Signed out successfully");
-            navigate('/signin');
-          }, 0);
+          setUser(null);
+          toast.success("Signed out successfully");
+          navigate('/signin');
         }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      
-      if (session?.user) {
-        await updateUserWithProfile(session.user);
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        
+        setSession(session);
+        
+        if (session?.user) {
+          await updateUserWithProfile(session.user);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
-      
-      setIsLoading(false); // Set to false after initial check
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const signIn = async (email: string, password: string) => {
+    console.log('Attempting to sign in with:', email);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
+        console.error('Sign in error:', error);
         throw error;
       }
+      console.log('Sign in successful');
     } catch (error: any) {
+      console.error('Sign in failed:', error);
       toast.error(error.message || "Failed to sign in");
       throw error;
     }
   };
 
   const signUp = async (email: string, password: string, name?: string) => {
+    console.log('Attempting to sign up with:', email);
     try {
       const { error } = await supabase.auth.signUp({ 
         email, 
@@ -136,23 +151,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       if (error) {
+        console.error('Sign up error:', error);
         throw error;
       }
       
+      console.log('Sign up successful');
       toast.success("Account created! Please check your email to verify your account.");
     } catch (error: any) {
+      console.error('Sign up failed:', error);
       toast.error(error.message || "Failed to create account");
       throw error;
     }
   };
 
   const signOut = async () => {
+    console.log('Attempting to sign out');
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
         throw error;
       }
+      console.log('Sign out successful');
     } catch (error: any) {
+      console.error('Sign out failed:', error);
       toast.error(error.message || "Failed to sign out");
     }
   };

@@ -47,16 +47,16 @@ export default function SignUp() {
   });
 
   const onSubmit = async (data: FormData) => {
+    console.log('Form submitted with:', data.email);
     setError(null);
     setIsSubmitting(true);
+    
     try {
-      console.log("Signing up with:", data.email);
       await signUp(data.email, data.password, data.name);
-      toast.success("Account created successfully!");
+      console.log('Sign up completed successfully');
     } catch (err: any) {
-      console.error("Signup error:", err);
+      console.error('Sign up error in component:', err);
       setError(err.message || "Failed to create account");
-      toast.error(err.message || "Failed to create account");
     } finally {
       setIsSubmitting(false);
     }

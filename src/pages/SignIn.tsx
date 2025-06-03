@@ -39,11 +39,15 @@ export default function SignIn() {
   });
 
   const onSubmit = async (data: FormData) => {
+    console.log('Form submitted with:', data.email);
     setError(null);
     setIsSubmitting(true);
+    
     try {
       await signIn(data.email, data.password);
+      console.log('Sign in completed successfully');
     } catch (err: any) {
+      console.error('Sign in error in component:', err);
       setError(err.message || "Failed to sign in");
     } finally {
       setIsSubmitting(false);

@@ -15,8 +15,19 @@ import { useNavigate } from "react-router-dom";
 import { LogOut, Settings, User } from "lucide-react";
 
 export function UserNav() {
-  const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  
+  // Add error boundary for auth context
+  let user = null;
+  let signOut = () => {};
+  
+  try {
+    const authContext = useAuth();
+    user = authContext.user;
+    signOut = authContext.signOut;
+  } catch (error) {
+    console.log("Auth context not available");
+  }
 
   if (!user) {
     return (
