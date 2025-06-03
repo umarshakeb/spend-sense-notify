@@ -15,7 +15,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { parseSMS, Transaction, Subscription, saveSMSData, getRandomBankName } from "@/utils/smsParser";
+import { parseSMS, Transaction, Subscription, saveSMSData, generateRealisticSMSData } from "@/utils/smsParser";
 import { useToast } from "@/components/ui/use-toast";
 import { Check, MessageSquareText, Inbox, Loader2, RefreshCw, IndianRupee } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -54,14 +54,12 @@ export default function SMSImport() {
     },
   });
 
-  // Check if running on a mobile device with Capacitor
   useEffect(() => {
     const checkPlatform = async () => {
       try {
         const { Capacitor } = await import('@capacitor/core');
         setIsMobileDevice(Capacitor.isNativePlatform());
         
-        // If we're on a mobile device, start auto-detecting messages
         if (Capacitor.isNativePlatform()) {
           simulateAutoDetection();
         } else {
@@ -76,62 +74,19 @@ export default function SMSImport() {
     checkPlatform();
   }, []);
 
-  // Simulate auto-detection of SMS messages on mobile devices
   const simulateAutoDetection = async () => {
     setIsProcessing(true);
     
-    // Simulate delay for message processing
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Generate realistic bank names for samples
-    const bankName1 = getRandomBankName();
-    const bankName2 = getRandomBankName();
-    const bankName3 = getRandomBankName();
-    
-    // Sample bank SMS messages with more realistic data
-    const sampleMessages: SMSMessage[] = [
-      {
-        body: `${bankName1}: Your Acct XX1234 has been debited INR 499.00 on 14-05-2025 for Netflix subscription. Avl Bal: INR 24,532.75`,
-        date: new Date(2025, 4, 14)
-      },
-      {
-        body: `${bankName1}: Your Acct XX1234 has been debited INR 750.00 on 13-05-2025 for Food Order from Swiggy. Avl Bal: INR 25,031.75`,
-        date: new Date(2025, 4, 13)
-      },
-      {
-        body: `${bankName2}: Your Acct XX1234 has been credited INR 45,000.00 on 01-05-2025 by SALARY/ABC COMPANY. Avl Bal: INR 67,281.75`,
-        date: new Date(2025, 4, 1)
-      },
-      {
-        body: `${bankName1}: Your Acct XX1234 has been debited INR 199.00 on 12-05-2025 for Spotify Premium. Avl Bal: INR 25,781.75`,
-        date: new Date(2025, 4, 12)
-      },
-      {
-        body: `${bankName3}: INR 2,340.00 debited from your account XX5678 for Amazon.in purchase on 10-05-2025. Avl Bal: INR 31,450.80`,
-        date: new Date(2025, 4, 10)
-      },
-      {
-        body: `${bankName2}: INR 899.00 spent at Flipkart via UPI on 09-05-2025. Avl bal: INR 33,790.80`,
-        date: new Date(2025, 4, 9)
-      }
-    ];
-    
     try {
-      // Extract balance from the most recent message
-      const latestMessage = sampleMessages[0];
-      const balanceMatch = latestMessage.body.match(/Avl Bal: INR ([0-9,.]+)/);
-      if (balanceMatch && balanceMatch[1]) {
-        const balanceValue = parseFloat(balanceMatch[1].replace(/,/g, ''));
-        setBalance(balanceValue);
-      }
+      const { transactions, subscriptions, balance: detectedBalance } = generateRealisticSMSData();
       
-      // Parse the messages
-      const { transactions, subscriptions } = parseSMS(sampleMessages);
+      setBalance(detectedBalance);
       setImportedTransactions(transactions);
       setImportedSubscriptions(subscriptions);
       
-      // Save the data to localStorage so dashboard can use it
-      saveSMSData(transactions, subscriptions, balance);
+      saveSMSData(transactions, subscriptions, detectedBalance);
       
       toast({
         title: "SMS Analysis Complete",
@@ -152,7 +107,6 @@ export default function SMSImport() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     setIsProcessing(true);
     
-    // Create a test array of messages to parse
     const messages = [
       {
         body: values.smsText,
@@ -165,13 +119,10 @@ export default function SMSImport() {
       setImportedTransactions(transactions);
       setImportedSubscriptions(subscriptions);
       
-      // Try to extract balance information
       const balanceMatch = values.smsText.match(/Avl Bal: INR ([0-9,.]+)/);
       if (balanceMatch && balanceMatch[1]) {
         const balanceValue = parseFloat(balanceMatch[1].replace(/,/g, ''));
         setBalance(balanceValue);
-        
-        // Save to localStorage
         saveSMSData(transactions, subscriptions, balanceValue);
       } else {
         saveSMSData(transactions, subscriptions, balance);
@@ -198,7 +149,6 @@ export default function SMSImport() {
       description: "All transactions have been added to your dashboard.",
     });
     
-    // Wait a moment then navigate back to dashboard
     setTimeout(() => {
       navigate('/');
     }, 1500);
@@ -206,232 +156,237 @@ export default function SMSImport() {
 
   return (
     <AppLayout showBackButton={true}>
-      <div className="container mx-auto py-6 space-y-6 px-3 sm:px-6">
-        <div>
-          <h1 className="text-3xl font-bold">SMS Import</h1>
-          <p className="text-muted-foreground">
-            Import transactions from bank SMS messages
-          </p>
-        </div>
-
-        {isAutoDetecting ? (
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle>Analyzing SMS Messages</CardTitle>
-              <CardDescription>
-                We're automatically scanning your bank messages to extract transactions
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center py-10">
-              <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-              <p className="text-center">Analyzing your messages...</p>
-              <p className="text-muted-foreground text-center text-sm mt-2">
-                This only takes a few seconds
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="w-full">
-              {balance !== null && (
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-950 border-b border-emerald-200 dark:border-emerald-900 rounded-t-lg">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Current Balance</span>
-                    <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300 flex items-center">
-                      <IndianRupee className="h-4 w-4 mr-1" />
-                      {balance.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                </div>
-              )}
-              <CardHeader>
-                <CardTitle>Import SMS</CardTitle>
-                <CardDescription>
-                  {isMobileDevice ? 
-                    "We've automatically analyzed your bank messages" :
-                    "Paste your bank or card SMS to extract transaction details"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {!isMobileDevice && (
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                      <FormField
-                        control={form.control}
-                        name="smsText"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>SMS Text</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Paste your SMS text here..." 
-                                {...field}
-                                rows={10} 
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Example: "Your account XX1234 has been debited INR 499.00 for Netflix subscription."
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button type="submit" disabled={isProcessing}>
-                        {isProcessing ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <MessageSquareText className="mr-2 h-4 w-4" />
-                            Parse SMS
-                          </>
-                        )}
-                      </Button>
-                    </form>
-                  </Form>
-                )}
-                {isMobileDevice && (
-                  <div className="flex flex-col items-center justify-center py-4">
-                    <Inbox className="h-12 w-12 text-primary mb-4" />
-                    <p className="text-center mb-4">
-                      We've analyzed your bank messages and found transactions
-                    </p>
-                    <Button 
-                      variant="outline" 
-                      onClick={simulateAutoDetection}
-                      disabled={isProcessing}
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Refresh Analysis
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="w-full">
-              <CardHeader className="pb-2">
-                <CardTitle>Results</CardTitle>
-                <CardDescription>
-                  Extracted data from SMS
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="transactions">
-                  <TabsList className="mb-4">
-                    <TabsTrigger value="transactions">
-                      Transactions <Badge className="ml-1">{importedTransactions.length}</Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="subscriptions">
-                      Subscriptions <Badge className="ml-1">{importedSubscriptions.length}</Badge>
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="transactions">
-                    {isProcessing ? (
-                      <div className="space-y-4">
-                        {[...Array(3)].map((_, i) => (
-                          <div key={i} className="flex items-center border-b pb-2">
-                            <Skeleton className="h-6 w-6 mr-2 rounded-full" />
-                            <div className="flex-1">
-                              <Skeleton className="h-4 w-24 mb-1" />
-                              <Skeleton className="h-3 w-40" />
-                            </div>
-                            <Skeleton className="h-5 w-16" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : importedTransactions.length > 0 ? (
-                      <div className="space-y-4 max-h-[300px] overflow-y-auto">
-                        {importedTransactions.map((transaction) => (
-                          <div key={transaction.id} className="flex items-center border-b pb-2">
-                            <div className="mr-2">
-                              <Check className="h-5 w-5 text-green-500" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium">{transaction.category}</div>
-                              <div className="text-sm text-muted-foreground truncate max-w-xs">
-                                {transaction.description}
-                              </div>
-                            </div>
-                            <div>
-                              <span className={transaction.type === 'expense' ? 'text-rose-500' : 'text-emerald-500'}>
-                                {transaction.amount < 0 ? '-₹' : '+₹'}{Math.abs(transaction.amount).toLocaleString('en-IN')}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <MessageSquareText className="mx-auto h-12 w-12 opacity-20 mb-2" />
-                        <p>No transactions parsed yet.</p>
-                        <p className="text-sm">{isMobileDevice ? "Refresh to analyze more messages" : "Paste an SMS and click Parse SMS to extract transactions"}</p>
-                      </div>
-                    )}
-                  </TabsContent>
-                  
-                  <TabsContent value="subscriptions">
-                    {isProcessing ? (
-                      <div className="space-y-4">
-                        {[...Array(2)].map((_, i) => (
-                          <div key={i} className="flex items-center border-b pb-2">
-                            <Skeleton className="h-6 w-6 mr-2 rounded-full" />
-                            <div className="flex-1">
-                              <Skeleton className="h-4 w-24 mb-1" />
-                              <Skeleton className="h-3 w-40" />
-                            </div>
-                            <Skeleton className="h-5 w-16" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : importedSubscriptions.length > 0 ? (
-                      <div className="space-y-4 max-h-[300px] overflow-y-auto">
-                        {importedSubscriptions.map((subscription) => (
-                          <div key={subscription.id} className="flex items-center border-b pb-2">
-                            <div className="mr-2">
-                              <Check className="h-5 w-5 text-green-500" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium">{subscription.name}</div>
-                              <div className="text-sm text-muted-foreground">
-                                Renews on {subscription.renewalDate.toLocaleDateString()}
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end">
-                              <span className="font-medium flex items-center whitespace-nowrap">
-                                <IndianRupee className="h-3 w-3 mr-0.5" />
-                                {subscription.amount.toLocaleString('en-IN')}
-                              </span>
-                              <Badge variant="outline" className="mt-1">{subscription.category}</Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <MessageSquareText className="mx-auto h-12 w-12 opacity-20 mb-2" />
-                        <p>No subscriptions detected.</p>
-                        <p className="text-sm">{isMobileDevice ? "Refresh to analyze more messages" : "Paste an SMS and click Parse SMS to extract subscriptions"}</p>
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-              <CardFooter className="flex justify-end">
-                <Button 
-                  variant="default" 
-                  disabled={importedTransactions.length === 0}
-                  onClick={handleImportAll}
-                >
-                  Import All Transactions
-                </Button>
-              </CardFooter>
-            </Card>
+      <div className="w-full min-h-screen px-3 py-4 sm:py-6 sm:px-6 overflow-x-hidden">
+        <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-6 min-w-0">
+          <div className="w-full min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold break-words">SMS Import</h1>
+            <p className="text-sm sm:text-base text-muted-foreground break-words">
+              Import transactions from bank SMS messages
+            </p>
           </div>
-        )}
+
+          {isAutoDetecting ? (
+            <Card className="w-full min-w-0">
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl break-words">Analyzing SMS Messages</CardTitle>
+                <CardDescription className="text-sm break-words">
+                  We're automatically scanning your bank messages to extract transactions
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center justify-center py-8 sm:py-10">
+                <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary mb-4" />
+                <p className="text-center text-sm sm:text-base break-words">Analyzing your messages...</p>
+                <p className="text-muted-foreground text-center text-xs sm:text-sm mt-2 break-words">
+                  This only takes a few seconds
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 w-full min-w-0">
+              <Card className="w-full min-w-0">
+                {balance !== null && (
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950 border-b border-emerald-200 dark:border-emerald-900 rounded-t-lg">
+                    <div className="flex justify-between items-center w-full min-w-0">
+                      <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300 break-words">Current Balance</span>
+                      <span className="text-base sm:text-lg font-bold text-emerald-700 dark:text-emerald-300 flex items-center flex-shrink-0">
+                        <IndianRupee className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <span className="break-all">{balance.toLocaleString('en-IN')}</span>
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-lg sm:text-xl break-words">Import SMS</CardTitle>
+                  <CardDescription className="text-sm break-words">
+                    {isMobileDevice ? 
+                      "We've automatically analyzed your bank messages" :
+                      "Paste your bank or card SMS to extract transaction details"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6">
+                  {!isMobileDevice && (
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
+                        <FormField
+                          control={form.control}
+                          name="smsText"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm">SMS Text</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Paste your SMS text here..." 
+                                  {...field}
+                                  rows={8}
+                                  className="text-sm resize-none"
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs break-words">
+                                Example: "Your account XX1234 has been debited INR 499.00 for Netflix subscription."
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="submit" disabled={isProcessing} className="w-full sm:w-auto">
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <MessageSquareText className="mr-2 h-4 w-4" />
+                              Parse SMS
+                            </>
+                          )}
+                        </Button>
+                      </form>
+                    </Form>
+                  )}
+                  {isMobileDevice && (
+                    <div className="flex flex-col items-center justify-center py-4">
+                      <Inbox className="h-10 w-10 sm:h-12 sm:w-12 text-primary mb-4" />
+                      <p className="text-center mb-4 text-sm break-words">
+                        We've analyzed your bank messages and found transactions
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        onClick={simulateAutoDetection}
+                        disabled={isProcessing}
+                        className="w-full sm:w-auto"
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Refresh Analysis
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="w-full min-w-0">
+                <CardHeader className="pb-2 p-4 sm:p-6">
+                  <CardTitle className="text-lg sm:text-xl break-words">Results</CardTitle>
+                  <CardDescription className="text-sm break-words">
+                    Extracted data from SMS
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6">
+                  <Tabs defaultValue="transactions" className="w-full">
+                    <TabsList className="mb-4 w-full">
+                      <TabsTrigger value="transactions" className="flex-1 text-xs sm:text-sm">
+                        Transactions <Badge className="ml-1 text-xs">{importedTransactions.length}</Badge>
+                      </TabsTrigger>
+                      <TabsTrigger value="subscriptions" className="flex-1 text-xs sm:text-sm">
+                        Subscriptions <Badge className="ml-1 text-xs">{importedSubscriptions.length}</Badge>
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="transactions" className="w-full">
+                      {isProcessing ? (
+                        <div className="space-y-4">
+                          {[...Array(3)].map((_, i) => (
+                            <div key={i} className="flex items-center border-b pb-2">
+                              <Skeleton className="h-6 w-6 mr-2 rounded-full" />
+                              <div className="flex-1 min-w-0">
+                                <Skeleton className="h-4 w-24 mb-1" />
+                                <Skeleton className="h-3 w-32" />
+                              </div>
+                              <Skeleton className="h-5 w-16" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : importedTransactions.length > 0 ? (
+                        <div className="space-y-4 max-h-[300px] overflow-y-auto">
+                          {importedTransactions.map((transaction) => (
+                            <div key={transaction.id} className="flex items-center border-b pb-2 w-full min-w-0">
+                              <div className="mr-2 flex-shrink-0">
+                                <Check className="h-5 w-5 text-green-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm break-words">{transaction.category}</div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {transaction.description}
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0">
+                                <span className={`text-sm ${transaction.type === 'expense' ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                  {transaction.amount < 0 ? '-₹' : '+₹'}{Math.abs(transaction.amount).toLocaleString('en-IN')}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <MessageSquareText className="mx-auto h-12 w-12 opacity-20 mb-2" />
+                          <p className="text-sm break-words">No transactions parsed yet.</p>
+                          <p className="text-xs break-words">{isMobileDevice ? "Refresh to analyze more messages" : "Paste an SMS and click Parse SMS to extract transactions"}</p>
+                        </div>
+                      )}
+                    </TabsContent>
+                    
+                    <TabsContent value="subscriptions" className="w-full">
+                      {isProcessing ? (
+                        <div className="space-y-4">
+                          {[...Array(2)].map((_, i) => (
+                            <div key={i} className="flex items-center border-b pb-2">
+                              <Skeleton className="h-6 w-6 mr-2 rounded-full" />
+                              <div className="flex-1 min-w-0">
+                                <Skeleton className="h-4 w-24 mb-1" />
+                                <Skeleton className="h-3 w-32" />
+                              </div>
+                              <Skeleton className="h-5 w-16" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : importedSubscriptions.length > 0 ? (
+                        <div className="space-y-4 max-h-[300px] overflow-y-auto">
+                          {importedSubscriptions.map((subscription) => (
+                            <div key={subscription.id} className="flex items-center border-b pb-2 w-full min-w-0">
+                              <div className="mr-2 flex-shrink-0">
+                                <Check className="h-5 w-5 text-green-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm break-words">{subscription.name}</div>
+                                <div className="text-xs text-muted-foreground break-words">
+                                  Renews on {subscription.renewalDate.toLocaleDateString()}
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end flex-shrink-0">
+                                <span className="font-medium flex items-center text-sm">
+                                  <IndianRupee className="h-3 w-3 mr-0.5" />
+                                  {subscription.amount.toLocaleString('en-IN')}
+                                </span>
+                                <Badge variant="outline" className="mt-1 text-xs">{subscription.category}</Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <MessageSquareText className="mx-auto h-12 w-12 opacity-20 mb-2" />
+                          <p className="text-sm break-words">No subscriptions detected.</p>
+                          <p className="text-xs break-words">{isMobileDevice ? "Refresh to analyze more messages" : "Paste an SMS and click Parse SMS to extract subscriptions"}</p>
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+                <CardFooter className="flex justify-end p-4 sm:p-6">
+                  <Button 
+                    variant="default" 
+                    disabled={importedTransactions.length === 0}
+                    onClick={handleImportAll}
+                    className="w-full sm:w-auto"
+                  >
+                    Import All Transactions
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
     </AppLayout>
   );

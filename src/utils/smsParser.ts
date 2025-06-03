@@ -61,20 +61,16 @@ const SUBSCRIPTION_PATTERNS = [
   }
 ];
 
-// Add bank patterns to identify real bank SMS messages
 const BANK_NAME_PATTERNS = [
   /(?:HDFC|SBI|ICICI|Axis|Kotak|PNB|Bank of Baroda|Canara|Yes Bank|Union Bank)/i,
   /(?:Federal|Indian Bank|UCO|Indian Overseas|Dena Bank|Bank of Maharashtra)/i,
-  // Add international banks
   /(?:Citi|HSBC|Standard Chartered|Bank of America|Wells Fargo|Chase|JPMorgan)/i
 ];
 
-// Function to extract amount from text using patterns
 function extractAmount(text: string, patterns: { pattern: RegExp, category: string }[]): { amount: number | null, category: string | null } {
   for (const { pattern, category } of patterns) {
     const match = text.match(pattern);
     if (match && match[1]) {
-      // Replace any commas and convert to number
       const amount = parseFloat(match[1].replace(/,/g, ''));
       return { amount, category };
     }
@@ -82,7 +78,6 @@ function extractAmount(text: string, patterns: { pattern: RegExp, category: stri
   return { amount: null, category: null };
 }
 
-// Function to identify subscription type
 function identifySubscription(text: string): { isSubscription: boolean, name: string | null, category: string, platform: string } {
   for (const { pattern, category, platform } of SUBSCRIPTION_PATTERNS) {
     const match = text.match(pattern);
@@ -98,23 +93,21 @@ function identifySubscription(text: string): { isSubscription: boolean, name: st
   return { isSubscription: false, name: null, category: '', platform: '' };
 }
 
-// Function to check if a message is from a bank
 export function isBankMessage(text: string): boolean {
   return BANK_NAME_PATTERNS.some(pattern => pattern.test(text));
 }
 
-// Function to categorize transaction
 function categorizeTransaction(text: string): string {
-  if (/(?:grocery|food|restaurant|cafe|dining)/i.test(text)) return 'Food & Dining';
-  if (/(?:movie|entertainment|ticket|cinema)/i.test(text)) return 'Entertainment';
-  if (/(?:uber|ola|transport|travel|flight)/i.test(text)) return 'Transportation';
-  if (/(?:amazon|flipkart|shopping|store|mall)/i.test(text)) return 'Shopping';
-  if (/(?:bill|utility|electricity|water|gas)/i.test(text)) return 'Bills & Utilities';
-  if (/(?:salary|income|deposit)/i.test(text)) return 'Income';
+  if (/(?:grocery|food|restaurant|cafe|dining|swiggy|zomato|dominos)/i.test(text)) return 'Food & Dining';
+  if (/(?:movie|entertainment|ticket|cinema|bookmyshow)/i.test(text)) return 'Entertainment';
+  if (/(?:uber|ola|transport|travel|flight|train|bus)/i.test(text)) return 'Transportation';
+  if (/(?:amazon|flipkart|shopping|store|mall|myntra|ajio)/i.test(text)) return 'Shopping';
+  if (/(?:bill|utility|electricity|water|gas|phone|internet)/i.test(text)) return 'Bills & Utilities';
+  if (/(?:salary|income|deposit|transfer)/i.test(text)) return 'Income';
+  if (/(?:netflix|spotify|prime|hotstar|subscription)/i.test(text)) return 'Subscriptions';
   return 'Miscellaneous';
 }
 
-// Main function to parse SMS
 export function parseSMS(messages: { body: string, date: Date }[]): { 
   transactions: Transaction[],
   subscriptions: Subscription[]
@@ -122,17 +115,14 @@ export function parseSMS(messages: { body: string, date: Date }[]): {
   const transactions: Transaction[] = [];
   const subscriptions: Subscription[] = [];
   
-  // Filter to only process bank messages
   const bankMessages = messages.filter(msg => isBankMessage(msg.body));
   
   bankMessages.forEach((message, index) => {
     const { body, date } = message;
     
-    // Check for expenses first
     let { amount, category } = extractAmount(body, EXPENSE_PATTERNS);
     let type: 'expense' | 'income' = 'expense';
     
-    // If no expense found, check for income
     if (amount === null) {
       const incomeResult = extractAmount(body, INCOME_PATTERNS);
       amount = incomeResult.amount;
@@ -140,15 +130,12 @@ export function parseSMS(messages: { body: string, date: Date }[]): {
       type = 'income';
     }
     
-    // If amount was found, create a transaction
     if (amount !== null) {
-      // Check if this might be a subscription
       const { isSubscription, name, category: subCategory, platform } = identifySubscription(body);
       
       if (isSubscription && name) {
-        // Add as a subscription
         const renewalDate = new Date(date);
-        renewalDate.setMonth(renewalDate.getMonth() + 1); // Assuming monthly renewal
+        renewalDate.setMonth(renewalDate.getMonth() + 1);
         
         subscriptions.push({
           id: `sub-${index}`,
@@ -160,12 +147,11 @@ export function parseSMS(messages: { body: string, date: Date }[]): {
         });
       }
       
-      // Also add as a regular transaction
       transactions.push({
         id: `txn-${index}`,
         date,
-        amount: type === 'expense' ? -amount : amount, // Negative for expenses
-        description: body.substring(0, 100), // Truncate description
+        amount: type === 'expense' ? -amount : amount,
+        description: body.substring(0, 100),
         category: category || categorizeTransaction(body),
         type
       });
@@ -175,7 +161,6 @@ export function parseSMS(messages: { body: string, date: Date }[]): {
   return { transactions, subscriptions };
 }
 
-// New utility to save parsed SMS data to localStorage
 export function saveSMSData(transactions: Transaction[], subscriptions: Subscription[], balance: number | null) {
   try {
     localStorage.setItem('sms_transactions', JSON.stringify(transactions));
@@ -185,9 +170,7 @@ export function saveSMSData(transactions: Transaction[], subscriptions: Subscrip
       localStorage.setItem('sms_balance', balance.toString());
     }
     
-    // Dispatch event to notify components that data has been updated
     window.dispatchEvent(new Event('sms_data_updated'));
-    
     return true;
   } catch (error) {
     console.error("Error saving SMS data to localStorage:", error);
@@ -195,11 +178,63 @@ export function saveSMSData(transactions: Transaction[], subscriptions: Subscrip
   }
 }
 
-// Utility to get real-world bank names for sample SMS
+// Generate realistic bank account numbers
+export function generateRealisticAccountNumber(): string {
+  const bankCodes = ['50100', '60200', '30400', '91100', '81100'];
+  const randomBankCode = bankCodes[Math.floor(Math.random() * bankCodes.length)];
+  const accountSuffix = Math.floor(Math.random() * 9000) + 1000;
+  return `XX${randomBankCode.slice(-4)}${accountSuffix}`;
+}
+
+// Generate realistic balances
+export function generateRealisticBalance(): number {
+  return Math.floor(Math.random() * 800000) + 50000; // Between 50k to 850k
+}
+
 export function getRandomBankName(): string {
   const banks = [
     "HDFC Bank", "ICICI Bank", "SBI", "Axis Bank", 
     "Kotak Bank", "Yes Bank", "PNB", "Canara Bank"
   ];
   return banks[Math.floor(Math.random() * banks.length)];
+}
+
+// Generate realistic transaction data
+export function generateRealisticSMSData(): { 
+  transactions: Transaction[], 
+  subscriptions: Subscription[], 
+  balance: number 
+} {
+  const accountNumber = generateRealisticAccountNumber();
+  let currentBalance = generateRealisticBalance();
+  
+  const sampleMessages = [
+    {
+      body: `${getRandomBankName()}: Your A/c ${accountNumber} debited INR 649.00 on ${new Date().toLocaleDateString('en-GB')} for Netflix Premium subscription. Avl Bal: INR ${currentBalance.toLocaleString('en-IN')}`,
+      date: new Date(2025, 5, 2)
+    },
+    {
+      body: `${getRandomBankName()}: INR 1,247.00 debited from A/c ${accountNumber} for Swiggy order on ${new Date().toLocaleDateString('en-GB')}. Avl Bal: INR ${(currentBalance + 1247).toLocaleString('en-IN')}`,
+      date: new Date(2025, 5, 1)
+    },
+    {
+      body: `${getRandomBankName()}: A/c ${accountNumber} credited INR 85,000.00 on ${new Date().toLocaleDateString('en-GB')} by NEFT-SALARY/XYZ TECHNOLOGIES PVT LTD. Avl Bal: INR ${(currentBalance + 1247 + 85000).toLocaleString('en-IN')}`,
+      date: new Date(2025, 5, 1)
+    },
+    {
+      body: `${getRandomBankName()}: Your A/c ${accountNumber} debited INR 299.00 on ${new Date().toLocaleDateString('en-GB')} for Spotify Premium. Avl Bal: INR ${(currentBalance + 1247 + 85000 + 299).toLocaleString('en-IN')}`,
+      date: new Date(2025, 4, 30)
+    },
+    {
+      body: `${getRandomBankName()}: INR 3,456.00 spent at Amazon.in via UPI from A/c ${accountNumber} on ${new Date().toLocaleDateString('en-GB')}. Avl Bal: INR ${(currentBalance + 1247 + 85000 + 299 + 3456).toLocaleString('en-IN')}`,
+      date: new Date(2025, 4, 29)
+    },
+    {
+      body: `${getRandomBankName()}: A/c ${accountNumber} debited INR 890.00 for Uber trip on ${new Date().toLocaleDateString('en-GB')}. Avl Bal: INR ${(currentBalance + 1247 + 85000 + 299 + 3456 + 890).toLocaleString('en-IN')}`,
+      date: new Date(2025, 4, 28)
+    }
+  ];
+
+  const { transactions, subscriptions } = parseSMS(sampleMessages);
+  return { transactions, subscriptions, balance: currentBalance };
 }
