@@ -27,7 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserWithProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Only true during initial load
   const navigate = useNavigate();
 
   // Function to fetch user profile data
@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await updateUserWithProfile(session.user);
       }
       
-      setIsLoading(false);
+      setIsLoading(false); // Set to false after initial check
     });
 
     return () => subscription.unsubscribe();
@@ -112,7 +112,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      setIsLoading(true);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
@@ -121,15 +120,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, name?: string) => {
     try {
-      setIsLoading(true);
-      
       const { error } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -148,22 +143,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
-      setIsLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) {
         throw error;
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to sign out");
-    } finally {
-      setIsLoading(false);
     }
   };
 

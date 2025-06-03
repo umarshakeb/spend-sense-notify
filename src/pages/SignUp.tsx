@@ -32,8 +32,9 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export default function SignUp() {
-  const { signUp, isLoading } = useAuth();
+  const { signUp } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -47,6 +48,7 @@ export default function SignUp() {
 
   const onSubmit = async (data: FormData) => {
     setError(null);
+    setIsSubmitting(true);
     try {
       console.log("Signing up with:", data.email);
       await signUp(data.email, data.password, data.name);
@@ -55,6 +57,8 @@ export default function SignUp() {
       console.error("Signup error:", err);
       setError(err.message || "Failed to create account");
       toast.error(err.message || "Failed to create account");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -132,8 +136,8 @@ export default function SignUp() {
                 <div className="text-sm font-medium text-destructive">{error}</div>
               )}
               
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating account..." : "Sign Up"}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Creating account..." : "Sign Up"}
               </Button>
             </form>
           </Form>
