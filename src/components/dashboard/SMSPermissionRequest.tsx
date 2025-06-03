@@ -90,31 +90,32 @@ export const SMSPermissionRequest = () => {
   }
 
   return (
-    <Card className="border-dashed border-2 mb-6 w-full max-w-full">
-      <CardHeader className="p-4">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <MessageSquareText className="h-5 w-5 text-primary flex-shrink-0" />
-          <span>Setup SMS Transaction Tracking</span>
+    <Card className="border-dashed border-2 w-full">
+      <CardHeader className="p-3 sm:p-4">
+        <CardTitle className="flex items-start gap-2 text-sm sm:text-lg">
+          <MessageSquareText className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0 mt-0.5" />
+          <span className="break-words">Setup SMS Transaction Tracking</span>
         </CardTitle>
-        <CardDescription className="text-sm">
+        <CardDescription className="text-xs sm:text-sm">
           Automatically track expenses by analyzing bank SMS
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div className="flex items-start gap-2 text-sm">
-          <ShieldCheck className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-          <p>
+      <CardContent className="p-3 sm:p-4 pt-0">
+        <div className="flex items-start gap-2 text-xs sm:text-sm">
+          <ShieldCheck className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0 mt-0.5" />
+          <p className="break-words">
             Messages analyzed on-device only. We only read bank messages to track spending.
           </p>
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-3 sm:p-4 pt-0">
         <Button 
           onClick={requestSMSPermission}
-          className="w-full"
+          className="w-full text-xs sm:text-sm"
           disabled={isLoading}
+          size="sm"
         >
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading && <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />}
           {isLoading ? "Analyzing Messages..." : "Allow SMS Access"}
         </Button>
       </CardFooter>

@@ -21,30 +21,30 @@ export function AppLayout({ children, showBackButton = false }: AppLayoutProps) 
   
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full overflow-x-hidden">
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
-          <header className="border-b bg-card sticky top-0 z-10 safe-top">
-            <div className="flex h-16 items-center px-4 md:px-6 justify-between pt-safe-top">
-              <div className="flex items-center gap-2">
+        <div className="flex-1 flex flex-col w-full min-w-0">
+          <header className="border-b bg-card sticky top-0 z-10 safe-top w-full">
+            <div className="flex h-12 sm:h-16 items-center px-3 sm:px-4 md:px-6 justify-between pt-safe-top w-full">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
                 {showBackButton && (
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="mr-2"
+                    className="mr-2 h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0"
                     onClick={() => navigate(-1)}
                   >
-                    <ArrowLeft className="h-5 w-5" />
+                    <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 )}
-                <h1 className="text-xl font-semibold">SpendSense</h1>
+                <h1 className="text-lg sm:text-xl font-semibold truncate">SpendSense</h1>
               </div>
-              <div className="ml-auto flex items-center space-x-4">
+              <div className="ml-auto flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
                 <UserNav />
               </div>
             </div>
           </header>
-          <main className="flex-1 bg-background">{children}</main>
+          <main className="flex-1 bg-background w-full min-w-0 overflow-x-hidden">{children}</main>
         </div>
       </div>
     </SidebarProvider>
