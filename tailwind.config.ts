@@ -63,13 +63,15 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom theme colors
+				// Enhanced finance theme colors with more appealing palette
 				finance: {
-					primary: '#108DA8',
-					secondary: '#0A5E6C',
-					accent: '#FF7043',
-					light: '#F5F9FA',
-					dark: '#344054'
+					primary: '#8B5CF6', // Beautiful purple
+					secondary: '#06B6D4', // Cyan
+					accent: '#F59E0B', // Amber
+					success: '#10B981', // Emerald
+					warning: '#F59E0B', // Amber
+					light: '#F8FAFC', // Slate 50
+					dark: '#1E293B' // Slate 800
 				}
 			},
 			borderRadius: {
