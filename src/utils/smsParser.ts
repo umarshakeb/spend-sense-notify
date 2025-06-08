@@ -199,42 +199,78 @@ export function getRandomBankName(): string {
   return banks[Math.floor(Math.random() * banks.length)];
 }
 
-// Generate realistic transaction data
+// Generate realistic transaction data with proper balance calculations
 export function generateRealisticSMSData(): { 
   transactions: Transaction[], 
   subscriptions: Subscription[], 
   balance: number 
 } {
   const accountNumber = generateRealisticAccountNumber();
-  let currentBalance = generateRealisticBalance();
+  const finalBalance = generateRealisticBalance();
   
-  const sampleMessages = [
-    {
-      body: `${getRandomBankName()}: Your A/c ${accountNumber} debited INR 649.00 on ${new Date().toLocaleDateString('en-GB')} for Netflix Premium subscription. Avl Bal: INR ${currentBalance.toLocaleString('en-IN')}`,
-      date: new Date(2025, 5, 2)
-    },
-    {
-      body: `${getRandomBankName()}: INR 1,247.00 debited from A/c ${accountNumber} for Swiggy order on ${new Date().toLocaleDateString('en-GB')}. Avl Bal: INR ${(currentBalance + 1247).toLocaleString('en-IN')}`,
-      date: new Date(2025, 5, 1)
-    },
-    {
-      body: `${getRandomBankName()}: A/c ${accountNumber} credited INR 85,000.00 on ${new Date().toLocaleDateString('en-GB')} by NEFT-SALARY/XYZ TECHNOLOGIES PVT LTD. Avl Bal: INR ${(currentBalance + 1247 + 85000).toLocaleString('en-IN')}`,
-      date: new Date(2025, 5, 1)
-    },
-    {
-      body: `${getRandomBankName()}: Your A/c ${accountNumber} debited INR 299.00 on ${new Date().toLocaleDateString('en-GB')} for Spotify Premium. Avl Bal: INR ${(currentBalance + 1247 + 85000 + 299).toLocaleString('en-IN')}`,
-      date: new Date(2025, 4, 30)
-    },
-    {
-      body: `${getRandomBankName()}: INR 3,456.00 spent at Amazon.in via UPI from A/c ${accountNumber} on ${new Date().toLocaleDateString('en-GB')}. Avl Bal: INR ${(currentBalance + 1247 + 85000 + 299 + 3456).toLocaleString('en-IN')}`,
-      date: new Date(2025, 4, 29)
-    },
-    {
-      body: `${getRandomBankName()}: A/c ${accountNumber} debited INR 890.00 for Uber trip on ${new Date().toLocaleDateString('en-GB')}. Avl Bal: INR ${(currentBalance + 1247 + 85000 + 299 + 3456 + 890).toLocaleString('en-IN')}`,
-      date: new Date(2025, 4, 28)
-    }
+  // Create realistic transactions with proper chronological order
+  const transactionData = [
+    { amount: 85000, type: 'income', desc: 'SALARY/XYZ TECHNOLOGIES PVT LTD', category: 'Income', days: 7 },
+    { amount: 649, type: 'expense', desc: 'Netflix Premium subscription', category: 'Subscriptions', days: 5 },
+    { amount: 1247, type: 'expense', desc: 'Swiggy order', category: 'Food & Dining', days: 4 },
+    { amount: 299, type: 'expense', desc: 'Spotify Premium', category: 'Subscriptions', days: 3 },
+    { amount: 3456, type: 'expense', desc: 'Amazon.in purchase', category: 'Shopping', days: 2 },
+    { amount: 890, type: 'expense', desc: 'Uber trip', category: 'Transportation', days: 1 },
   ];
 
-  const { transactions, subscriptions } = parseSMS(sampleMessages);
-  return { transactions, subscriptions, balance: currentBalance };
+  // Calculate running balance backwards from final balance
+  let runningBalance = finalBalance;
+  const transactions: Transaction[] = [];
+  const subscriptions: Subscription[] = [];
+
+  transactionData.forEach((txn, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - txn.days);
+    
+    // For expenses, the balance before the transaction was higher
+    // For income, the balance before the transaction was lower
+    if (txn.type === 'expense') {
+      runningBalance += txn.amount;
+    } else {
+      runningBalance -= txn.amount;
+    }
+
+    const bankName = getRandomBankName();
+    const transactionAmount = txn.type === 'expense' ? -txn.amount : txn.amount;
+    
+    const smsText = txn.type === 'expense' 
+      ? `${bankName}: Your A/c ${accountNumber} debited INR ${txn.amount.toLocaleString('en-IN')}.00 on ${date.toLocaleDateString('en-GB')} for ${txn.desc}. Avl Bal: INR ${runningBalance.toLocaleString('en-IN')}`
+      : `${bankName}: A/c ${accountNumber} credited INR ${txn.amount.toLocaleString('en-IN')}.00 on ${date.toLocaleDateString('en-GB')} by NEFT-${txn.desc}. Avl Bal: INR ${runningBalance.toLocaleString('en-IN')}`;
+
+    transactions.push({
+      id: `txn-${index}`,
+      date,
+      amount: transactionAmount,
+      description: smsText,
+      category: txn.category,
+      type: txn.type as 'expense' | 'income'
+    });
+
+    // Add subscriptions
+    if (txn.category === 'Subscriptions') {
+      const renewalDate = new Date(date);
+      renewalDate.setMonth(renewalDate.getMonth() + 1);
+      
+      subscriptions.push({
+        id: `sub-${index}`,
+        name: txn.desc,
+        amount: txn.amount,
+        renewalDate,
+        category: 'entertainment',
+        platform: 'ott'
+      });
+    }
+  });
+
+  // Sort transactions by date (newest first)
+  transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  console.log('Generated SMS data:', { transactions, subscriptions, balance: finalBalance });
+  
+  return { transactions, subscriptions, balance: finalBalance };
 }

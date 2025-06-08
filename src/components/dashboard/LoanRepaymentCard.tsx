@@ -31,36 +31,37 @@ export const LoanRepaymentCard = () => {
   };
 
   return (
-    <Card className="border-dashed mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Landmark className="h-5 w-5 text-primary" />
-          Loan Repayment
+    <Card className="border-dashed mb-6 w-full overflow-hidden">
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+          <Landmark className="h-5 w-5 text-primary flex-shrink-0" />
+          <span className="break-words">Loan Repayment</span>
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-sm break-words">
           Track your loan repayment progress and find ways to save
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 sm:p-6 pt-0">
         {showLoanForm ? (
           <form onSubmit={handleAddLoan} className="space-y-4">
             <div className="grid gap-2">
-              <Label htmlFor="loanAmount">Loan Amount ($)</Label>
+              <Label htmlFor="loanAmount" className="text-sm">Loan Amount (₹)</Label>
               <Input
                 id="loanAmount"
-                placeholder="e.g. 50000"
+                placeholder="e.g. 500000"
                 value={loanAmount}
                 onChange={(e) => setLoanAmount(e.target.value)}
                 type="number"
                 min="0"
                 required
+                className="w-full"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="interestRate">Interest Rate (%)</Label>
+              <Label htmlFor="interestRate" className="text-sm">Interest Rate (%)</Label>
               <Input
                 id="interestRate"
-                placeholder="e.g. 4.5"
+                placeholder="e.g. 8.5"
                 value={interestRate}
                 onChange={(e) => setInterestRate(e.target.value)}
                 type="number"
@@ -68,35 +69,50 @@ export const LoanRepaymentCard = () => {
                 min="0"
                 max="100"
                 required
+                className="w-full"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="monthlyPayment">Monthly Payment ($)</Label>
+              <Label htmlFor="monthlyPayment" className="text-sm">Monthly Payment (₹)</Label>
               <Input
                 id="monthlyPayment"
-                placeholder="e.g. 400"
+                placeholder="e.g. 15000"
                 value={monthlyPayment}
                 onChange={(e) => setMonthlyPayment(e.target.value)}
                 type="number"
                 min="0"
                 required
+                className="w-full"
               />
             </div>
-            <div className="flex gap-2 pt-2">
-              <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Save Loan"}</Button>
-              <Button type="button" variant="outline" onClick={() => setShowLoanForm(false)}>Cancel</Button>
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+                {loading ? "Saving..." : "Save Loan"}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowLoanForm(false)}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
             </div>
           </form>
         ) : (
-          <div className="text-sm text-muted-foreground">
-            <p>Do you have any loans that you'd like to pay off sooner?</p>
-            <p className="mt-1">Add your loan details, and we'll help you track repayment progress and find ways to save on interest.</p>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p className="break-words">Do you have any loans that you'd like to pay off sooner?</p>
+            <p className="break-words">
+              Add your loan details, and we'll help you track repayment progress and find ways to save on interest.
+            </p>
           </div>
         )}
       </CardContent>
       {!showLoanForm && (
-        <CardFooter>
-          <Button onClick={() => setShowLoanForm(true)}>Add Loan Details</Button>
+        <CardFooter className="p-4 sm:p-6 pt-0">
+          <Button onClick={() => setShowLoanForm(true)} className="w-full sm:w-auto">
+            Add Loan Details
+          </Button>
         </CardFooter>
       )}
     </Card>
