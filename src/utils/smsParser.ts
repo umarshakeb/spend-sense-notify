@@ -188,7 +188,7 @@ export function generateRealisticAccountNumber(): string {
 
 // Generate realistic balances
 export function generateRealisticBalance(): number {
-  return Math.floor(Math.random() * 800000) + 50000; // Between 50k to 850k
+  return Math.floor(Math.random() * 500000) + 150000; // Between 1.5L to 6.5L
 }
 
 export function getRandomBankName(): string {
@@ -206,20 +206,24 @@ export function generateRealisticSMSData(): {
   balance: number 
 } {
   const accountNumber = generateRealisticAccountNumber();
-  const finalBalance = generateRealisticBalance();
+  const currentBalance = generateRealisticBalance();
   
-  // Create realistic transactions with proper chronological order
+  // Create realistic transactions
   const transactionData = [
-    { amount: 85000, type: 'income', desc: 'SALARY/XYZ TECHNOLOGIES PVT LTD', category: 'Income', days: 7 },
-    { amount: 649, type: 'expense', desc: 'Netflix Premium subscription', category: 'Subscriptions', days: 5 },
-    { amount: 1247, type: 'expense', desc: 'Swiggy order', category: 'Food & Dining', days: 4 },
-    { amount: 299, type: 'expense', desc: 'Spotify Premium', category: 'Subscriptions', days: 3 },
-    { amount: 3456, type: 'expense', desc: 'Amazon.in purchase', category: 'Shopping', days: 2 },
-    { amount: 890, type: 'expense', desc: 'Uber trip', category: 'Transportation', days: 1 },
+    { amount: 85000, type: 'income', desc: 'Salary from XYZ Technologies Pvt Ltd', category: 'Income', days: 28 },
+    { amount: 649, type: 'expense', desc: 'Netflix Premium subscription', category: 'Subscriptions', days: 25 },
+    { amount: 299, type: 'expense', desc: 'Spotify Premium subscription', category: 'Subscriptions', days: 23 },
+    { amount: 2500, type: 'expense', desc: 'Electricity bill payment', category: 'Bills & Utilities', days: 20 },
+    { amount: 1850, type: 'expense', desc: 'Swiggy food order', category: 'Food & Dining', days: 18 },
+    { amount: 450, type: 'expense', desc: 'Uber cab ride', category: 'Transportation', days: 15 },
+    { amount: 8500, type: 'expense', desc: 'Amazon.in purchase', category: 'Shopping', days: 12 },
+    { amount: 1200, type: 'expense', desc: 'Movie tickets BookMyShow', category: 'Entertainment', days: 10 },
+    { amount: 750, type: 'expense', desc: 'Coffee shop purchase', category: 'Food & Dining', days: 8 },
+    { amount: 15000, type: 'expense', desc: 'EMI payment to HDFC Bank', category: 'Bills & Utilities', days: 5 },
+    { amount: 3200, type: 'expense', desc: 'Grocery shopping', category: 'Food & Dining', days: 3 },
+    { amount: 890, type: 'expense', desc: 'Mobile recharge', category: 'Bills & Utilities', days: 1 }
   ];
 
-  // Calculate running balance backwards from final balance
-  let runningBalance = finalBalance;
   const transactions: Transaction[] = [];
   const subscriptions: Subscription[] = [];
 
@@ -227,20 +231,23 @@ export function generateRealisticSMSData(): {
     const date = new Date();
     date.setDate(date.getDate() - txn.days);
     
-    // For expenses, the balance before the transaction was higher
-    // For income, the balance before the transaction was lower
-    if (txn.type === 'expense') {
-      runningBalance += txn.amount;
-    } else {
-      runningBalance -= txn.amount;
-    }
-
     const bankName = getRandomBankName();
     const transactionAmount = txn.type === 'expense' ? -txn.amount : txn.amount;
     
+    // Calculate balance for this transaction (showing balance after transaction)
+    let balanceAfterTxn = currentBalance;
+    for (let i = 0; i <= index; i++) {
+      const prevTxn = transactionData[i];
+      if (prevTxn.type === 'expense') {
+        balanceAfterTxn -= prevTxn.amount;
+      } else {
+        balanceAfterTxn += prevTxn.amount;
+      }
+    }
+    
     const smsText = txn.type === 'expense' 
-      ? `${bankName}: Your A/c ${accountNumber} debited INR ${txn.amount.toLocaleString('en-IN')}.00 on ${date.toLocaleDateString('en-GB')} for ${txn.desc}. Avl Bal: INR ${runningBalance.toLocaleString('en-IN')}`
-      : `${bankName}: A/c ${accountNumber} credited INR ${txn.amount.toLocaleString('en-IN')}.00 on ${date.toLocaleDateString('en-GB')} by NEFT-${txn.desc}. Avl Bal: INR ${runningBalance.toLocaleString('en-IN')}`;
+      ? `${bankName}: Your A/c ${accountNumber} debited INR ${txn.amount.toLocaleString('en-IN')}.00 on ${date.toLocaleDateString('en-GB')} for ${txn.desc}. Avl Bal: INR ${Math.max(balanceAfterTxn, 0).toLocaleString('en-IN')}`
+      : `${bankName}: A/c ${accountNumber} credited INR ${txn.amount.toLocaleString('en-IN')}.00 on ${date.toLocaleDateString('en-GB')} by NEFT-${txn.desc}. Avl Bal: INR ${balanceAfterTxn.toLocaleString('en-IN')}`;
 
     transactions.push({
       id: `txn-${index}`,
@@ -270,7 +277,7 @@ export function generateRealisticSMSData(): {
   // Sort transactions by date (newest first)
   transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  console.log('Generated SMS data:', { transactions, subscriptions, balance: finalBalance });
+  console.log('Generated realistic SMS data:', { transactions: transactions.length, subscriptions: subscriptions.length, balance: currentBalance });
   
-  return { transactions, subscriptions, balance: finalBalance };
+  return { transactions, subscriptions, balance: currentBalance };
 }
