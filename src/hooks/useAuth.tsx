@@ -1,4 +1,3 @@
-
 import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -18,7 +17,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name?: string) => Promise<void>;
+  signUp: (email: string, password: string, name?: string, phoneNumber?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -137,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, name?: string) => {
+  const signUp = async (email: string, password: string, name?: string, phoneNumber?: string) => {
     console.log('Attempting to sign up with:', email);
     try {
       const { error } = await supabase.auth.signUp({ 
@@ -145,7 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           data: {
-            name: name || email.split("@")[0]
+            name: name || email.split("@")[0],
+            phone_number: phoneNumber
           }
         }
       });

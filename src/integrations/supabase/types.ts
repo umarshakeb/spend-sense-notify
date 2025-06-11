@@ -9,26 +9,65 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      otp_verifications: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          otp_code: string
+          phone_number: string
+          verified: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          otp_code: string
+          phone_number: string
+          verified?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          otp_code?: string
+          phone_number?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
+          country_code: string | null
           created_at: string
+          currency_code: string | null
           id: string
           name: string | null
+          phone_number: string | null
+          phone_verified: boolean | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          country_code?: string | null
           created_at?: string
+          currency_code?: string | null
           id: string
           name?: string | null
+          phone_number?: string | null
+          phone_verified?: boolean | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          country_code?: string | null
           created_at?: string
+          currency_code?: string | null
           id?: string
           name?: string | null
+          phone_number?: string | null
+          phone_verified?: boolean | null
           updated_at?: string
         }
         Relationships: []

@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Transaction {
   id: string;
@@ -200,6 +201,41 @@ function parseDate(dateStr: string): Date {
   }
 }
 
+export async function parseSMSWithLLM(messages: { body: string, date: Date }[]): Promise<{ 
+  transactions: Transaction[],
+  subscriptions: Subscription[]
+}> {
+  try {
+    console.log(`Processing ${messages.length} messages with LLM`);
+    
+    const { data, error } = await supabase.functions.invoke('parse-sms-with-llm', {
+      body: { messages }
+    });
+
+    if (error) {
+      console.error('LLM parsing error:', error);
+      // Fallback to local parsing
+      return parseSMS(messages);
+    }
+
+    const transactions = data.transactions.map((t: any, index: number) => ({
+      id: `llm-txn-${index}`,
+      date: new Date(t.date),
+      amount: t.amount,
+      description: t.description,
+      category: t.category,
+      type: t.type
+    }));
+
+    console.log(`LLM parsed ${transactions.length} transactions`);
+    return { transactions, subscriptions: data.subscriptions || [] };
+  } catch (error) {
+    console.error('Error using LLM for SMS parsing:', error);
+    // Fallback to local parsing
+    return parseSMS(messages);
+  }
+}
+
 export function parseSMS(messages: { body: string, date: Date }[]): { 
   transactions: Transaction[],
   subscriptions: Subscription[]
@@ -334,3 +370,38 @@ export function generateRealisticSMSData(): {
 }
 
 export { isBankMessage };
+
+// Enhanced function to get user's currency preference
+export async function getUserCurrency(): Promise<string> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return 'USD'; // Default currency
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('currency_code, country_code')
+      .eq('id', user.id)
+      .single();
+
+    return profile?.currency_code || 'USD';
+  } catch (error) {
+    console.error('Error fetching user currency:', error);
+    return 'USD';
+  }
+}
+
+// Currency formatting helper
+export function formatCurrency(amount: number, currencyCode: string): string {
+  const formatters: { [key: string]: Intl.NumberFormat } = {
+    'INR': new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }),
+    'USD': new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }),
+    'EUR': new Intl.NumberFormat('en-EU', { style: 'currency', currency: 'EUR' }),
+    'GBP': new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }),
+  };
+
+  const formatter = formatters[currencyCode] || formatters['USD'];
+  return formatter.format(amount);
+}

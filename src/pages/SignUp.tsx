@@ -16,17 +16,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreditCard } from "lucide-react";
-import { toast } from "sonner";
+import { CreditCard, Phone, Mail } from "lucide-react";
+import PhoneSignup from "@/components/auth/PhoneSignup";
 
 const formSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-  confirmPassword: z.string().min(6, { message: "Password must be at least 6 characters" }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -35,14 +31,14 @@ export default function SignUp() {
   const { signUp } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [signupMethod, setSignupMethod] = useState<'email' | 'phone'>('email');
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
       email: "",
       password: "",
-      confirmPassword: "",
+      name: "",
     },
   });
 
@@ -62,6 +58,14 @@ export default function SignUp() {
     }
   };
 
+  if (signupMethod === 'phone') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <PhoneSignup onBack={() => setSignupMethod('email')} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
@@ -71,12 +75,31 @@ export default function SignUp() {
               <CreditCard className="h-6 w-6 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+          <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
           <CardDescription>
-            Enter your information to get started with SpendSense
+            Choose your preferred signup method
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Button
+              variant={signupMethod === 'email' ? 'default' : 'outline'}
+              onClick={() => setSignupMethod('email')}
+              className="flex items-center gap-2"
+            >
+              <Mail className="h-4 w-4" />
+              Email
+            </Button>
+            <Button
+              variant={signupMethod === 'phone' ? 'default' : 'outline'}
+              onClick={() => setSignupMethod('phone')}
+              className="flex items-center gap-2"
+            >
+              <Phone className="h-4 w-4" />
+              Phone
+            </Button>
+          </div>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -84,7 +107,7 @@ export default function SignUp() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>Full Name</FormLabel>
                     <FormControl>
                       <Input placeholder="John Doe" {...field} />
                     </FormControl>
@@ -118,26 +141,13 @@ export default function SignUp() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="******" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               
               {error && (
                 <div className="text-sm font-medium text-destructive">{error}</div>
               )}
               
               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Creating account..." : "Sign Up"}
+                {isSubmitting ? "Creating account..." : "Create Account"}
               </Button>
             </form>
           </Form>

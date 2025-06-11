@@ -1,124 +1,97 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CircleDollarSign, Sparkles, PiggyBank } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Brain, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
+import { getUserCurrency, formatCurrency } from "@/utils/smsParser";
 
-// Sample insights data - in a real app, this would come from an AI analysis of user's data
-const sampleInsights = [
-  {
-    id: 1,
-    type: "subscription",
-    title: "Subscription Savings",
-    description: "You could save $19.98/month by cancelling Netflix and Spotify, which you used less than 5 hours last month.",
-    action: "Review Subscriptions",
-    actionPath: "/subscriptions",
-    savings: 19.98,
-  },
-  {
-    id: 2,
-    type: "spending",
-    title: "Spending Pattern",
-    description: "Your dining expenses increased by 25% this month. Setting a budget of $300/month could save you $120.",
-    action: "Set Budget",
-    actionPath: "/analytics",
-    savings: 120,
-  },
-  {
-    id: 3,
-    type: "loan",
-    title: "Loan Repayment Plan",
-    description: "By allocating your subscription savings to your loan, you could pay it off 3 months earlier and save $230 in interest.",
-    action: "View Plan",
-    actionPath: "/analytics",
-    savings: 230,
-  },
-];
+export default function AiInsights() {
+  const [currency, setCurrency] = useState('USD');
 
-export function AiInsights() {
-  const { toast } = useToast();
-  const [insights, setInsights] = useState(sampleInsights);
-  const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    const fetchCurrency = async () => {
+      const userCurrency = await getUserCurrency();
+      setCurrency(userCurrency);
+    };
+    
+    fetchCurrency();
+  }, []);
 
-  // Total potential savings
-  const totalSavings = insights.reduce((total, insight) => total + insight.savings, 0);
+  const insights = [
+    {
+      id: 1,
+      type: "spending_pattern",
+      icon: TrendingUp,
+      title: "Increased Food Spending",
+      description: `Your food expenses have increased by 23% this month compared to last month. You've spent ${formatCurrency(450, currency)} on food delivery alone.`,
+      severity: "medium" as const,
+      actionable: true,
+    },
+    {
+      id: 2,
+      type: "saving_opportunity",
+      icon: TrendingDown,
+      title: "Subscription Optimization",
+      description: `You have 3 entertainment subscriptions costing ${formatCurrency(89, currency)}/month. Consider consolidating to save ${formatCurrency(267, currency)}/year.`,
+      severity: "low" as const,
+      actionable: true,
+    },
+    {
+      id: 3,
+      type: "budget_alert",
+      icon: AlertTriangle,
+      title: "Budget Threshold Alert",
+      description: `You're approaching your monthly shopping budget limit. ${formatCurrency(127, currency)} remaining out of ${formatCurrency(800, currency)}.`,
+      severity: "high" as const,
+      actionable: true,
+    },
+  ];
 
-  const generateNewInsights = () => {
-    setIsLoading(true);
-    // This would be an API call to an AI service in a real implementation
-    setTimeout(() => {
-      toast({
-        title: "Insights refreshed",
-        description: "Your financial insights have been updated with the latest data.",
-      });
-      setIsLoading(false);
-    }, 1500);
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "high":
+        return "text-red-600 dark:text-red-400";
+      case "medium":
+        return "text-yellow-600 dark:text-yellow-400";
+      case "low":
+        return "text-green-600 dark:text-green-400";
+      default:
+        return "text-blue-600 dark:text-blue-400";
+    }
   };
 
   return (
-    <Card className="col-span-full">
-      <CardHeader className="flex flex-row items-center">
-        <div className="flex-1">
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            AI-Powered Insights
-          </CardTitle>
-          <CardDescription>
-            Personalized financial recommendations based on your spending habits
-          </CardDescription>
-        </div>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={generateNewInsights}
-          disabled={isLoading}
-        >
-          {isLoading ? "Analyzing..." : "Refresh Insights"}
-        </Button>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Brain className="h-5 w-5 text-primary" />
+          AI-Powered Insights
+        </CardTitle>
+        <CardDescription>
+          Personalized financial insights based on your spending patterns
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="mb-4 p-4 bg-primary/5 rounded-lg border border-primary/10">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium">Potential Savings</h4>
-              <p className="text-sm text-muted-foreground">
-                Based on our AI analysis of your spending patterns
-              </p>
-            </div>
-            <div className="flex items-center">
-              <PiggyBank className="h-8 w-8 mr-2 text-primary" />
-              <span className="text-2xl font-bold">${totalSavings.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {insights.map((insight) => (
-            <div key={insight.id} className="p-4 border rounded-lg">
-              <div className="flex justify-between items-start mb-2">
-                <h4 className="font-medium">{insight.title}</h4>
-                <Badge variant="outline" className="ml-2">
-                  ${insight.savings.toFixed(2)} potential savings
-                </Badge>
+      <CardContent className="space-y-4">
+        {insights.map((insight) => {
+          const IconComponent = insight.icon;
+          return (
+            <div
+              key={insight.id}
+              className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+            >
+              <div className={`mt-0.5 ${getSeverityColor(insight.severity)}`}>
+                <IconComponent className="h-4 w-4" />
               </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                {insight.description}
-              </p>
-              <Button 
-                variant="link" 
-                className="p-0 h-auto font-normal text-sm"
-                onClick={() => toast({
-                  title: "Coming soon",
-                  description: "This feature will be available in the next update."
-                })}
-              >
-                {insight.action} →
-              </Button>
+              <div className="flex-1 space-y-1">
+                <h4 className="text-sm font-medium leading-none">
+                  {insight.title}
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  {insight.description}
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </CardContent>
     </Card>
   );
