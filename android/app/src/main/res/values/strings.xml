@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">spend-sense-notify</string>
+    <string name="title_activity_main">spend-sense-notify</string>
+    <string name="package_name">com.lovable.spendsense</string>
+    <string name="custom_url_scheme">com.lovable.spendsense</string>
+</resources>
