@@ -17,95 +17,187 @@ export interface Subscription {
   platform: string;
 }
 
-const EXPENSE_PATTERNS = [
-  {
-    pattern: /(?:spent|paid|debited|charged)\s+(?:INR|Rs\.?|₹)?\s*([0-9,.]+)/i,
-    category: 'general'
-  },
-  {
-    pattern: /(?:txn|transaction|payment)\s+of\s+(?:INR|Rs\.?|₹)?\s*([0-9,.]+)/i,
-    category: 'general'
-  },
-  {
-    pattern: /(?:INR|Rs\.?|₹)\s*([0-9,.]+)\s+(?:debited|spent|paid)/i,
-    category: 'general'
-  }
+// Patterns for actual transaction messages
+const UPI_TRANSACTION_PATTERNS = [
+  // Pattern 1: "Amt Sent Rs.111.00 From BANK_NAME A/C *1234 TO RECEIVER On 11-06"
+  /(?:Amt\s+)?Sent\s+Rs\.?\s*([0-9,.]+)\s+From\s+([A-Z\s]+)\s+A\/C\s+\*(\d{4})\s+TO\s+([^,\n]+)\s+On\s+([0-9-]+)/i,
+  
+  // Pattern 2: "Rs.111.00 sent from BANK A/C *1234 to RECEIVER on 11-06"
+  /Rs\.?\s*([0-9,.]+)\s+sent\s+from\s+([A-Z\s]+)\s+A\/C\s+\*(\d{4})\s+to\s+([^,\n]+)\s+on\s+([0-9-]+)/i,
+  
+  // Pattern 3: "Received Rs.111.00 in BANK A/C *1234 from SENDER on 11-06"
+  /Received\s+Rs\.?\s*([0-9,.]+)\s+in\s+([A-Z\s]+)\s+A\/C\s+\*(\d{4})\s+from\s+([^,\n]+)\s+on\s+([0-9-]+)/i,
+  
+  // Pattern 4: "Rs.111.00 received in BANK A/C *1234 from SENDER on 11-06"
+  /Rs\.?\s*([0-9,.]+)\s+received\s+in\s+([A-Z\s]+)\s+A\/C\s+\*(\d{4})\s+from\s+([^,\n]+)\s+on\s+([0-9-]+)/i
 ];
 
-const INCOME_PATTERNS = [
-  {
-    pattern: /(?:received|credited|added|deposited)\s+(?:INR|Rs\.?|₹)?\s*([0-9,.]+)/i,
-    category: 'income'
-  },
-  {
-    pattern: /(?:INR|Rs\.?|₹)\s*([0-9,.]+)\s+(?:credited|received)/i,
-    category: 'income'
-  }
+// Patterns for card/bank transactions
+const BANK_TRANSACTION_PATTERNS = [
+  // Debit patterns
+  /(?:debited|spent|paid)\s+(?:INR|Rs\.?|₹)?\s*([0-9,.]+)\s+(?:from|on)\s+([A-Z\s]+).*?(?:A\/C|Card)\s+(?:\*|ending)(\d{4})/i,
+  
+  // Credit patterns  
+  /(?:credited|received|deposited)\s+(?:INR|Rs\.?|₹)?\s*([0-9,.]+)\s+(?:to|in)\s+([A-Z\s]+).*?(?:A\/C|Card)\s+(?:\*|ending)(\d{4})/i,
+  
+  // Balance info patterns
+  /(?:A\/C|Account)\s+(?:\*|ending)?(\d{4})\s+(?:debited|credited)\s+(?:INR|Rs\.?|₹)?\s*([0-9,.]+)/i
 ];
 
-const SUBSCRIPTION_PATTERNS = [
-  {
-    pattern: /(?:Netflix|Prime Video|Amazon Prime|Disney\+|Hotstar)/i,
-    category: 'entertainment',
-    platform: 'ott'
-  },
-  {
-    pattern: /(?:Spotify|Apple Music|YouTube Music|Gaana)/i,
-    category: 'music',
-    platform: 'ott'
-  },
-  {
-    pattern: /(?:Coursera|Udemy|Skillshare|Pluralsight|LinkedIn Learning)/i,
-    category: 'education',
-    platform: 'edutech'
-  }
+// Exclude promotional/offer messages
+const PROMOTIONAL_KEYWORDS = [
+  'offer', 'scheme', 'discount', 'cashback', 'reward', 'bonus', 'gift',
+  'congratulations', 'winner', 'prize', 'free', 'limited time', 'expires',
+  'apply now', 'click here', 'visit', 'download', 'install', 'upgrade',
+  'pre-approved', 'eligible', 'qualify', 'minimum', 'maximum', 'terms',
+  'conditions', 'interest rate', 'loan', 'credit card', 'insurance'
 ];
 
-const BANK_NAME_PATTERNS = [
-  /(?:HDFC|SBI|ICICI|Axis|Kotak|PNB|Bank of Baroda|Canara|Yes Bank|Union Bank)/i,
-  /(?:Federal|Indian Bank|UCO|Indian Overseas|Dena Bank|Bank of Maharashtra)/i,
-  /(?:Citi|HSBC|Standard Chartered|Bank of America|Wells Fargo|Chase|JPMorgan)/i
+// Known bank names and their common abbreviations
+const BANK_NAMES = [
+  'HDFC', 'ICICI', 'SBI', 'AXIS', 'KOTAK', 'YES', 'INDUSIND', 'PNB',
+  'CANARA', 'BOB', 'UNION', 'FEDERAL', 'RBL', 'IDFC', 'BANDHAN',
+  'PAYTM', 'PHONEPE', 'GPAY', 'GOOGLEPAY', 'BHIM', 'UPI'
 ];
 
-function extractAmount(text: string, patterns: { pattern: RegExp, category: string }[]): { amount: number | null, category: string | null } {
-  for (const { pattern, category } of patterns) {
-    const match = text.match(pattern);
-    if (match && match[1]) {
-      const amount = parseFloat(match[1].replace(/,/g, ''));
-      return { amount, category };
-    }
-  }
-  return { amount: null, category: null };
+function isPromotionalMessage(text: string): boolean {
+  const lowerText = text.toLowerCase();
+  return PROMOTIONAL_KEYWORDS.some(keyword => lowerText.includes(keyword));
 }
 
-function identifySubscription(text: string): { isSubscription: boolean, name: string | null, category: string, platform: string } {
-  for (const { pattern, category, platform } of SUBSCRIPTION_PATTERNS) {
+function isBankMessage(text: string): boolean {
+  return BANK_NAMES.some(bank => 
+    new RegExp(`\\b${bank}\\b`, 'i').test(text)
+  );
+}
+
+function parseUPITransaction(text: string): {
+  amount: number | null;
+  bank: string | null;
+  accountDigits: string | null;
+  counterparty: string | null;
+  date: string | null;
+  type: 'sent' | 'received' | null;
+} {
+  for (const pattern of UPI_TRANSACTION_PATTERNS) {
     const match = text.match(pattern);
     if (match) {
-      return { 
-        isSubscription: true, 
-        name: match[0], 
-        category, 
-        platform 
+      const amount = parseFloat(match[1].replace(/,/g, ''));
+      const bank = match[2].trim();
+      const accountDigits = match[3];
+      const counterparty = match[4].trim();
+      const dateStr = match[5];
+      
+      // Determine if it's sent or received
+      const isSent = /sent|from/i.test(text);
+      const type = isSent ? 'sent' : 'received';
+      
+      return {
+        amount,
+        bank,
+        accountDigits,
+        counterparty,
+        date: dateStr,
+        type
       };
     }
   }
-  return { isSubscription: false, name: null, category: '', platform: '' };
+  
+  return {
+    amount: null,
+    bank: null,
+    accountDigits: null,
+    counterparty: null,
+    date: null,
+    type: null
+  };
 }
 
-export function isBankMessage(text: string): boolean {
-  return BANK_NAME_PATTERNS.some(pattern => pattern.test(text));
+function parseBankTransaction(text: string): {
+  amount: number | null;
+  bank: string | null;
+  accountDigits: string | null;
+  type: 'debit' | 'credit' | null;
+} {
+  for (const pattern of BANK_TRANSACTION_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) {
+      const amount = parseFloat(match[1].replace(/,/g, ''));
+      const bank = match[2] ? match[2].trim() : null;
+      const accountDigits = match[3] || match[1];
+      
+      const isDebit = /debited|spent|paid/i.test(text);
+      const type = isDebit ? 'debit' : 'credit';
+      
+      return {
+        amount,
+        bank,
+        accountDigits,
+        type
+      };
+    }
+  }
+  
+  return {
+    amount: null,
+    bank: null,
+    accountDigits: null,
+    type: null
+  };
 }
 
-function categorizeTransaction(text: string): string {
-  if (/(?:grocery|food|restaurant|cafe|dining|swiggy|zomato|dominos)/i.test(text)) return 'Food & Dining';
-  if (/(?:movie|entertainment|ticket|cinema|bookmyshow)/i.test(text)) return 'Entertainment';
-  if (/(?:uber|ola|transport|travel|flight|train|bus)/i.test(text)) return 'Transportation';
-  if (/(?:amazon|flipkart|shopping|store|mall|myntra|ajio)/i.test(text)) return 'Shopping';
-  if (/(?:bill|utility|electricity|water|gas|phone|internet)/i.test(text)) return 'Bills & Utilities';
-  if (/(?:salary|income|deposit|transfer)/i.test(text)) return 'Income';
-  if (/(?:netflix|spotify|prime|hotstar|subscription)/i.test(text)) return 'Subscriptions';
+function categorizeTransaction(text: string, counterparty?: string): string {
+  const lowerText = text.toLowerCase();
+  const lowerCounterparty = counterparty?.toLowerCase() || '';
+  
+  // Food & Dining
+  if (/swiggy|zomato|dominos|mcdonald|kfc|pizza|restaurant|cafe|food/i.test(lowerText + lowerCounterparty)) {
+    return 'Food & Dining';
+  }
+  
+  // Transportation  
+  if (/uber|ola|rapido|metro|petrol|fuel|parking|transport/i.test(lowerText + lowerCounterparty)) {
+    return 'Transportation';
+  }
+  
+  // Shopping
+  if (/amazon|flipkart|myntra|ajio|nykaa|shopping|store/i.test(lowerText + lowerCounterparty)) {
+    return 'Shopping';
+  }
+  
+  // Entertainment
+  if (/netflix|prime|hotstar|spotify|bookmyshow|movie|entertainment/i.test(lowerText + lowerCounterparty)) {
+    return 'Entertainment';
+  }
+  
+  // Bills & Utilities
+  if (/electricity|water|gas|phone|internet|mobile|recharge|bill/i.test(lowerText + lowerCounterparty)) {
+    return 'Bills & Utilities';
+  }
+  
+  // If counterparty looks like a person's name, categorize as transfer
+  if (counterparty && /^[A-Z][a-z]+\s+[A-Z][a-z]+$/i.test(counterparty.trim())) {
+    return 'Transfer';
+  }
+  
   return 'Miscellaneous';
+}
+
+function parseDate(dateStr: string): Date {
+  const currentYear = new Date().getFullYear();
+  
+  // Handle formats like "11-06" (DD-MM)
+  if (/^\d{1,2}-\d{1,2}$/.test(dateStr)) {
+    const [day, month] = dateStr.split('-').map(Number);
+    return new Date(currentYear, month - 1, day);
+  }
+  
+  // Handle other common formats
+  try {
+    return new Date(dateStr);
+  } catch {
+    return new Date(); // Fallback to current date
+  }
 }
 
 export function parseSMS(messages: { body: string, date: Date }[]): { 
@@ -115,48 +207,54 @@ export function parseSMS(messages: { body: string, date: Date }[]): {
   const transactions: Transaction[] = [];
   const subscriptions: Subscription[] = [];
   
-  const bankMessages = messages.filter(msg => isBankMessage(msg.body));
+  // Filter to only bank messages and exclude promotional content
+  const validMessages = messages.filter(msg => 
+    isBankMessage(msg.body) && !isPromotionalMessage(msg.body)
+  );
   
-  bankMessages.forEach((message, index) => {
+  console.log(`Processing ${validMessages.length} valid bank messages out of ${messages.length} total messages`);
+  
+  validMessages.forEach((message, index) => {
     const { body, date } = message;
     
-    let { amount, category } = extractAmount(body, EXPENSE_PATTERNS);
-    let type: 'expense' | 'income' = 'expense';
-    
-    if (amount === null) {
-      const incomeResult = extractAmount(body, INCOME_PATTERNS);
-      amount = incomeResult.amount;
-      category = incomeResult.category;
-      type = 'income';
-    }
-    
-    if (amount !== null) {
-      const { isSubscription, name, category: subCategory, platform } = identifySubscription(body);
-      
-      if (isSubscription && name) {
-        const renewalDate = new Date(date);
-        renewalDate.setMonth(renewalDate.getMonth() + 1);
-        
-        subscriptions.push({
-          id: `sub-${index}`,
-          name,
-          amount,
-          renewalDate,
-          category: subCategory,
-          platform
-        });
-      }
+    // Try to parse as UPI transaction first
+    const upiData = parseUPITransaction(body);
+    if (upiData.amount !== null && upiData.type !== null) {
+      const transactionDate = upiData.date ? parseDate(upiData.date) : date;
       
       transactions.push({
         id: `txn-${index}`,
-        date,
-        amount: type === 'expense' ? -amount : amount,
-        description: body.substring(0, 100),
-        category: category || categorizeTransaction(body),
-        type
+        date: transactionDate,
+        amount: upiData.type === 'sent' ? -upiData.amount : upiData.amount,
+        description: `${upiData.type === 'sent' ? 'Sent to' : 'Received from'} ${upiData.counterparty} via ${upiData.bank}`,
+        category: categorizeTransaction(body, upiData.counterparty),
+        type: upiData.type === 'sent' ? 'expense' : 'income'
       });
+      
+      console.log(`Parsed UPI transaction: ₹${upiData.amount} ${upiData.type} ${upiData.counterparty}`);
+      return;
+    }
+    
+    // Try to parse as regular bank transaction
+    const bankData = parseBankTransaction(body);
+    if (bankData.amount !== null && bankData.type !== null) {
+      transactions.push({
+        id: `txn-${index}`,
+        date,
+        amount: bankData.type === 'debit' ? -bankData.amount : bankData.amount,
+        description: body.substring(0, 100) + '...',
+        category: categorizeTransaction(body),
+        type: bankData.type === 'debit' ? 'expense' : 'income'
+      });
+      
+      console.log(`Parsed bank transaction: ₹${bankData.amount} ${bankData.type} from ${bankData.bank}`);
     }
   });
+  
+  console.log(`Successfully parsed ${transactions.length} transactions`);
+  
+  // Sort transactions by date (newest first)
+  transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
   
   return { transactions, subscriptions };
 }
@@ -178,106 +276,61 @@ export function saveSMSData(transactions: Transaction[], subscriptions: Subscrip
   }
 }
 
-// Generate realistic bank account numbers
-export function generateRealisticAccountNumber(): string {
-  const bankCodes = ['50100', '60200', '30400', '91100', '81100'];
-  const randomBankCode = bankCodes[Math.floor(Math.random() * bankCodes.length)];
-  const accountSuffix = Math.floor(Math.random() * 9000) + 1000;
-  return `XX${randomBankCode.slice(-4)}${accountSuffix}`;
-}
-
-// Generate realistic balances
-export function generateRealisticBalance(): number {
-  return Math.floor(Math.random() * 500000) + 150000; // Between 1.5L to 6.5L
-}
-
-export function getRandomBankName(): string {
-  const banks = [
-    "HDFC Bank", "ICICI Bank", "SBI", "Axis Bank", 
-    "Kotak Bank", "Yes Bank", "PNB", "Canara Bank"
+// Generate sample transaction messages for testing
+export function generateSampleSMSMessages(): { body: string, date: Date }[] {
+  const messages = [
+    {
+      body: "Amt Sent Rs.250.00 From HDFC BANK A/C *4567 TO RAHUL SHARMA On 10-06 Ref 234567890 Not You? Call 18002586161/SMS BLOCK UPI to 9971056161",
+      date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+    },
+    {
+      body: "Received Rs.1500.00 in ICICI A/C *8901 from PRIYA SINGH on 09-06 Ref 345678901 UPI Txn via PHONEPE",
+      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+    },
+    {
+      body: "Your SBI A/C *2345 debited INR 85.00 on 08-06 for SWIGGY ORDER at MUMBAI. Avl Bal: INR 15,240.50",
+      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+    },
+    {
+      body: "Sent Rs.500.00 From AXIS BANK A/C *6789 TO AMAZON PAY On 07-06 Ref 456789012",
+      date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)
+    },
+    {
+      body: "KOTAK BANK A/C *3456 credited Rs.25000.00 on 06-06 by NEFT-SALARY TRANSFER from XYZ COMPANY",
+      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+    }
   ];
-  return banks[Math.floor(Math.random() * banks.length)];
+  
+  return messages;
 }
 
-// Generate realistic transaction data with proper balance calculations
+// For demo purposes - this would be replaced with actual SMS reading
 export function generateRealisticSMSData(): { 
   transactions: Transaction[], 
   subscriptions: Subscription[], 
   balance: number 
 } {
-  const accountNumber = generateRealisticAccountNumber();
-  const currentBalance = generateRealisticBalance();
+  const sampleMessages = generateSampleSMSMessages();
+  const { transactions, subscriptions } = parseSMS(sampleMessages);
   
-  // Create realistic transactions
-  const transactionData = [
-    { amount: 85000, type: 'income', desc: 'Salary from XYZ Technologies Pvt Ltd', category: 'Income', days: 28 },
-    { amount: 649, type: 'expense', desc: 'Netflix Premium subscription', category: 'Subscriptions', days: 25 },
-    { amount: 299, type: 'expense', desc: 'Spotify Premium subscription', category: 'Subscriptions', days: 23 },
-    { amount: 2500, type: 'expense', desc: 'Electricity bill payment', category: 'Bills & Utilities', days: 20 },
-    { amount: 1850, type: 'expense', desc: 'Swiggy food order', category: 'Food & Dining', days: 18 },
-    { amount: 450, type: 'expense', desc: 'Uber cab ride', category: 'Transportation', days: 15 },
-    { amount: 8500, type: 'expense', desc: 'Amazon.in purchase', category: 'Shopping', days: 12 },
-    { amount: 1200, type: 'expense', desc: 'Movie tickets BookMyShow', category: 'Entertainment', days: 10 },
-    { amount: 750, type: 'expense', desc: 'Coffee shop purchase', category: 'Food & Dining', days: 8 },
-    { amount: 15000, type: 'expense', desc: 'EMI payment to HDFC Bank', category: 'Bills & Utilities', days: 5 },
-    { amount: 3200, type: 'expense', desc: 'Grocery shopping', category: 'Food & Dining', days: 3 },
-    { amount: 890, type: 'expense', desc: 'Mobile recharge', category: 'Bills & Utilities', days: 1 }
-  ];
-
-  const transactions: Transaction[] = [];
-  const subscriptions: Subscription[] = [];
-
-  transactionData.forEach((txn, index) => {
-    const date = new Date();
-    date.setDate(date.getDate() - txn.days);
+  // Calculate a realistic balance based on transactions
+  const totalSpent = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
     
-    const bankName = getRandomBankName();
-    const transactionAmount = txn.type === 'expense' ? -txn.amount : txn.amount;
+  const totalReceived = transactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
     
-    // Calculate balance for this transaction (showing balance after transaction)
-    let balanceAfterTxn = currentBalance;
-    for (let i = 0; i <= index; i++) {
-      const prevTxn = transactionData[i];
-      if (prevTxn.type === 'expense') {
-        balanceAfterTxn -= prevTxn.amount;
-      } else {
-        balanceAfterTxn += prevTxn.amount;
-      }
-    }
-    
-    const smsText = txn.type === 'expense' 
-      ? `${bankName}: Your A/c ${accountNumber} debited INR ${txn.amount.toLocaleString('en-IN')}.00 on ${date.toLocaleDateString('en-GB')} for ${txn.desc}. Avl Bal: INR ${Math.max(balanceAfterTxn, 0).toLocaleString('en-IN')}`
-      : `${bankName}: A/c ${accountNumber} credited INR ${txn.amount.toLocaleString('en-IN')}.00 on ${date.toLocaleDateString('en-GB')} by NEFT-${txn.desc}. Avl Bal: INR ${balanceAfterTxn.toLocaleString('en-IN')}`;
-
-    transactions.push({
-      id: `txn-${index}`,
-      date,
-      amount: transactionAmount,
-      description: smsText,
-      category: txn.category,
-      type: txn.type as 'expense' | 'income'
-    });
-
-    // Add subscriptions
-    if (txn.category === 'Subscriptions') {
-      const renewalDate = new Date(date);
-      renewalDate.setMonth(renewalDate.getMonth() + 1);
-      
-      subscriptions.push({
-        id: `sub-${index}`,
-        name: txn.desc,
-        amount: txn.amount,
-        renewalDate,
-        category: 'entertainment',
-        platform: 'ott'
-      });
-    }
+  const balance = 15000 + totalReceived - totalSpent; // Starting with base balance
+  
+  console.log('Generated realistic SMS data:', { 
+    transactions: transactions.length, 
+    subscriptions: subscriptions.length, 
+    balance 
   });
-
-  // Sort transactions by date (newest first)
-  transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
-
-  console.log('Generated realistic SMS data:', { transactions: transactions.length, subscriptions: subscriptions.length, balance: currentBalance });
   
-  return { transactions, subscriptions, balance: currentBalance };
+  return { transactions, subscriptions, balance };
 }
+
+export { isBankMessage };
