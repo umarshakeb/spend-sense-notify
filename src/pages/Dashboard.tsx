@@ -3,7 +3,7 @@ import { SpendingSummary } from "@/components/dashboard/SpendingSummary";
 import { SpendingChart } from "@/components/dashboard/SpendingChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { UpcomingRenewals } from "@/components/dashboard/UpcomingRenewals";
-import { AiInsights } from "@/components/dashboard/AiInsights";
+import AiInsights from "@/components/dashboard/AiInsights";
 import { SMSPermissionRequest } from "@/components/dashboard/SMSPermissionRequest";
 import { LoanRepaymentCard } from "@/components/dashboard/LoanRepaymentCard";
 import { useAuth } from "@/hooks/useAuth";
