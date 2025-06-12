@@ -1,4 +1,3 @@
-
 import { SpendingSummary } from "@/components/dashboard/SpendingSummary";
 import { SpendingChart } from "@/components/dashboard/SpendingChart";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
@@ -12,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, MessageSquareText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { generateRealisticSMSData, saveSMSData } from "@/utils/smsParser";
+import { generateRealisticSMSData, saveSMSData, Transaction } from "@/utils/smsParser";
 import { toast } from "@/components/ui/use-toast";
 
 export default function Dashboard() {
