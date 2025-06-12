@@ -30,6 +30,7 @@ export default function SignUp() {
 
     setIsLoading(true);
     try {
+      console.log('Attempting to sign up with:', email, name);
       await signUp(email, password, name);
       toast.success("Account created successfully! Please check your email to verify your account.");
     } catch (error: any) {
