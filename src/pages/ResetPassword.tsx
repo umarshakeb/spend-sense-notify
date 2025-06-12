@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,43 +15,79 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreditCard } from "lucide-react";
+import { Mail } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function SignIn() {
-  const { signIn } = useAuth();
-  const [error, setError] = useState<string | null>(null);
+export default function ResetPassword() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
-      password: "",
     },
   });
 
   const onSubmit = async (data: FormData) => {
-    console.log('Form submitted with:', data.email);
-    setError(null);
     setIsSubmitting(true);
     
     try {
-      await signIn(data.email, data.password);
-      console.log('Sign in completed successfully');
+      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+        redirectTo: `${window.location.origin}/update-password`,
+      });
+
+      if (error) {
+        console.error('Password reset error:', error);
+        toast.error(error.message || "Failed to send reset email");
+      } else {
+        setIsSubmitted(true);
+        toast.success("Password reset email sent! Please check your inbox.");
+      }
     } catch (err: any) {
-      console.error('Sign in error in component:', err);
-      setError(err.message || "Failed to sign in");
+      console.error('Password reset exception:', err);
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1 text-center">
+            <div className="flex justify-center mb-2">
+              <div className="rounded-full bg-primary/10 p-3">
+                <Mail className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl font-bold">Check Your Email</CardTitle>
+            <CardDescription>
+              We've sent a password reset link to your email address
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground text-center">
+              Click the link in the email to reset your password. If you don't see the email, check your spam folder.
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <Link to="/signin">
+              <Button variant="outline">Back to Sign In</Button>
+            </Link>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -60,12 +95,12 @@ export default function SignIn() {
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-2">
             <div className="rounded-full bg-primary/10 p-3">
-              <CreditCard className="h-6 w-6 text-primary" />
+              <Mail className="h-6 w-6 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
+          <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
           <CardDescription>
-            Enter your credentials to access your account
+            Enter your email address and we'll send you a link to reset your password
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -84,41 +119,18 @@ export default function SignIn() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="******" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {error && (
-                <div className="text-sm font-medium text-destructive">{error}</div>
-              )}
               
               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Signing in..." : "Sign In"}
+                {isSubmitting ? "Sending..." : "Send Reset Link"}
               </Button>
             </form>
           </Form>
-          
-          <div className="mt-4 text-center">
-            <Link to="/reset-password" className="text-sm text-primary hover:underline">
-              Forgot your password?
-            </Link>
-          </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-sm text-muted-foreground text-center">
-            Don't have an account?{" "}
-            <Link to="/signup" className="text-primary underline hover:text-primary/80">
-              Sign Up
+            Remember your password?{" "}
+            <Link to="/signin" className="text-primary underline hover:text-primary/80">
+              Sign In
             </Link>
           </div>
         </CardFooter>
