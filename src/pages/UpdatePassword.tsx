@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,8 +32,9 @@ type FormData = z.infer<typeof formSchema>;
 export default function UpdatePassword() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -46,17 +47,52 @@ export default function UpdatePassword() {
   useEffect(() => {
     // Check if this is a valid password reset session
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setIsValidSession(true);
-      } else {
-        toast.error("Invalid or expired reset link");
+      try {
+        // Check for access token and refresh token in URL params (from email link)
+        const accessToken = searchParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token');
+        const type = searchParams.get('type');
+
+        if (accessToken && refreshToken && type === 'recovery') {
+          console.log('Password recovery tokens found in URL, setting session');
+          
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error) {
+            console.error('Error setting session:', error);
+            toast.error("Invalid or expired reset link");
+            navigate("/signin");
+            return;
+          }
+
+          if (data.session) {
+            console.log('Session set successfully for password recovery');
+            setIsValidSession(true);
+          }
+        } else {
+          // Check if user has an existing session that allows password updates
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            setIsValidSession(true);
+          } else {
+            toast.error("Invalid or expired reset link");
+            navigate("/signin");
+          }
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+        toast.error("Something went wrong. Please try again.");
         navigate("/signin");
+      } finally {
+        setIsLoading(false);
       }
     };
 
     checkSession();
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
@@ -71,6 +107,8 @@ export default function UpdatePassword() {
         toast.error(error.message || "Failed to update password");
       } else {
         toast.success("Password updated successfully!");
+        // Sign out after password update to ensure fresh session
+        await supabase.auth.signOut();
         navigate("/signin");
       }
     } catch (err: any) {
@@ -81,13 +119,31 @@ export default function UpdatePassword() {
     }
   };
 
-  if (!isValidSession) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Loading...</CardTitle>
           </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isValidSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle>Invalid Session</CardTitle>
+            <CardDescription>The password reset link is invalid or has expired.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate("/signin")} className="w-full">
+              Go to Sign In
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );

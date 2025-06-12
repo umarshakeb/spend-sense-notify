@@ -1,3 +1,4 @@
+
 import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -76,6 +77,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         console.log('Auth state change:', event, session?.user?.email);
         setSession(session);
+        
+        // Handle password recovery flow
+        if (event === 'PASSWORD_RECOVERY') {
+          console.log('Password recovery detected, redirecting to update password');
+          navigate('/update-password');
+          return;
+        }
         
         if (session?.user && event === 'SIGNED_IN') {
           await updateUserWithProfile(session.user);
