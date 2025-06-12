@@ -33,10 +33,15 @@ export default function SignUp() {
       await signUp(email, password, name);
       toast.success("Account created successfully! Please check your email to verify your account.");
     } catch (error: any) {
+      console.error("SignUp error:", error);
       toast.error(error.message || "Failed to create account");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSignupMethodChange = (method: SignupMethod) => {
+    setSignupMethod(method);
   };
 
   if (signupMethod === "phone") {
@@ -65,7 +70,7 @@ export default function SignUp() {
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant={signupMethod === "email" ? "default" : "outline"}
-              onClick={() => setSignupMethod("email")}
+              onClick={() => handleSignupMethodChange("email")}
               className="flex items-center gap-2"
             >
               <Mail className="h-4 w-4" />
@@ -73,7 +78,7 @@ export default function SignUp() {
             </Button>
             <Button
               variant={signupMethod === "phone" ? "default" : "outline"}
-              onClick={() => setSignupMethod("phone")}
+              onClick={() => handleSignupMethodChange("phone")}
               className="flex items-center gap-2"
             >
               <Phone className="h-4 w-4" />
