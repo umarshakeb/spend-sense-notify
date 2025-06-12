@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Transaction {
@@ -102,7 +103,7 @@ export function generateSampleSMSMessages() {
 
 // Generate realistic SMS data for demo
 export function generateRealisticSMSData() {
-  const transactions = [
+  const transactions: Transaction[] = [
     { amount: 250, type: 'expense', description: 'Zomato', category: 'Food & Dining', date: '2024-07-15' },
     { amount: 1200, type: 'income', description: 'Google Pay', category: 'Transfer', date: '2024-07-14' },
     { amount: 500, type: 'expense', description: 'Airtel Bill', category: 'Bills & Utilities', date: '2024-07-13' },
@@ -112,7 +113,7 @@ export function generateRealisticSMSData() {
     { amount: 400, type: 'expense', description: 'Indian Oil', category: 'Transportation', date: '2024-07-09' },
   ];
 
-  const subscriptions = [
+  const subscriptions: Subscription[] = [
     { name: 'Amazon Prime', price: 999, category: 'Entertainment', renewalDate: '2024-07-20' },
   ];
 

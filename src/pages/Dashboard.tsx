@@ -42,7 +42,13 @@ export default function Dashboard() {
       
       console.log('Generated data:', { transactions: transactions.length, subscriptions: subscriptions.length, balance });
       
-      saveSMSData(transactions, subscriptions, balance);
+      // Ensure transactions have proper typing
+      const typedTransactions: Transaction[] = transactions.map(t => ({
+        ...t,
+        type: t.type as 'income' | 'expense'
+      }));
+      
+      saveSMSData(typedTransactions, subscriptions, balance);
       localStorage.setItem('sms_permission_asked', 'true');
       setSmsPermissionAsked(true);
       

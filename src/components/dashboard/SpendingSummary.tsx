@@ -54,7 +54,7 @@ const useTransactionData = () => {
           .filter(t => t.type === 'expense')
           .reduce((sum, t) => sum + Math.abs(t.amount), 0);
         
-        const subscriptionTotal = subscriptions.reduce((sum, s) => sum + s.amount, 0);
+        const subscriptionTotal = subscriptions.reduce((sum, s) => sum + s.price, 0);
         
         setData({
           balance,
