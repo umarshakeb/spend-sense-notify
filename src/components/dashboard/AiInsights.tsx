@@ -5,17 +5,17 @@ import { Brain, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { getUserCurrency, formatCurrency } from "@/utils/smsParser";
 
 export default function AiInsights() {
-  const [currency, setCurrency] = useState('INR'); // Default to INR for demo
+  const [currency, setCurrency] = useState('INR'); // Default to INR
 
   useEffect(() => {
     const fetchCurrency = async () => {
-      console.log('Fetching user currency...');
+      console.log('AiInsights: Fetching user currency...');
       try {
         const userCurrency = await getUserCurrency();
-        console.log('User currency detected:', userCurrency);
+        console.log('AiInsights: User currency detected:', userCurrency);
         setCurrency(userCurrency);
       } catch (error) {
-        console.error('Error fetching currency:', error);
+        console.error('AiInsights: Error fetching currency:', error);
         setCurrency('INR'); // Fallback to INR
       }
     };
@@ -23,30 +23,16 @@ export default function AiInsights() {
     fetchCurrency();
   }, []);
 
-  // Adjust amounts based on currency
-  const getAmountsForCurrency = (currency: string) => {
-    console.log('Getting amounts for currency:', currency);
-    if (currency === 'INR') {
-      return {
-        foodExpense: 3750,
-        subscriptionCost: 2400,
-        yearlySavings: 22500,
-        remainingBudget: 10500,
-        totalBudget: 65000
-      };
-    } else {
-      return {
-        foodExpense: 450,
-        subscriptionCost: 89,
-        yearlySavings: 267,
-        remainingBudget: 127,
-        totalBudget: 800
-      };
-    }
+  // Use INR amounts for Indian market
+  const amounts = {
+    foodExpense: 3750,
+    subscriptionCost: 2400,
+    yearlySavings: 22500,
+    remainingBudget: 10500,
+    totalBudget: 65000
   };
 
-  const amounts = getAmountsForCurrency(currency);
-  console.log('Using amounts:', amounts, 'for currency:', currency);
+  console.log('AiInsights: Using amounts:', amounts, 'for currency:', currency);
 
   const insights = [
     {
@@ -54,7 +40,7 @@ export default function AiInsights() {
       type: "spending_pattern",
       icon: TrendingUp,
       title: "Increased Food Spending",
-      description: `Your food expenses have increased by 23% this month compared to last month. You've spent ${formatCurrency(amounts.foodExpense, currency)} on food delivery alone.`,
+      description: `Your food expenses have increased by 23% this month compared to last month. You've spent ${formatCurrency(amounts.foodExpense)} on food delivery alone.`,
       severity: "medium" as const,
       actionable: true,
     },
@@ -63,7 +49,7 @@ export default function AiInsights() {
       type: "saving_opportunity",
       icon: TrendingDown,
       title: "Subscription Optimization",
-      description: `You have 3 entertainment subscriptions costing ${formatCurrency(amounts.subscriptionCost, currency)}/month. Consider consolidating to save ${formatCurrency(amounts.yearlySavings, currency)}/year.`,
+      description: `You have 3 entertainment subscriptions costing ${formatCurrency(amounts.subscriptionCost)}/month. Consider consolidating to save ${formatCurrency(amounts.yearlySavings)}/year.`,
       severity: "low" as const,
       actionable: true,
     },
@@ -72,7 +58,7 @@ export default function AiInsights() {
       type: "budget_alert",
       icon: AlertTriangle,
       title: "Budget Threshold Alert",
-      description: `You're approaching your monthly shopping budget limit. ${formatCurrency(amounts.remainingBudget, currency)} remaining out of ${formatCurrency(amounts.totalBudget, currency)}.`,
+      description: `You're approaching your monthly shopping budget limit. ${formatCurrency(amounts.remainingBudget)} remaining out of ${formatCurrency(amounts.totalBudget)}.`,
       severity: "high" as const,
       actionable: true,
     },
