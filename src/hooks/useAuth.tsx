@@ -30,12 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Function to fetch user profile data
+  // Function to fetch user profile data (cached to avoid repeated calls)
   const fetchProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('name, avatar_url')
         .eq('id', userId)
         .single();
       
@@ -58,17 +58,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const profile = await fetchProfile(currentUser.id);
-    const userWithProfile = {
+    // Set user immediately without profile for faster UI updates
+    const userWithoutProfile = {
       ...currentUser,
-      profile: profile || {}
+      profile: {}
     };
-    
-    setUser(userWithProfile);
+    setUser(userWithoutProfile);
+
+    // Fetch profile in background
+    setTimeout(async () => {
+      const profile = await fetchProfile(currentUser.id);
+      if (profile) {
+        setUser({
+          ...currentUser,
+          profile
+        });
+      }
+    }, 0);
   };
 
   useEffect(() => {
     let mounted = true;
+    let profileFetched = false;
 
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -85,14 +96,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         
-        if (session?.user && event === 'SIGNED_IN') {
-          await updateUserWithProfile(session.user);
-          toast.success("Successfully signed in!");
-          navigate('/');
-        } else if (session?.user) {
-          await updateUserWithProfile(session.user);
+        if (session?.user) {
+          // Only fetch profile once per session to avoid repeated calls
+          if (event === 'SIGNED_IN' || (!profileFetched && event === 'TOKEN_REFRESHED')) {
+            await updateUserWithProfile(session.user);
+            profileFetched = true;
+            
+            if (event === 'SIGNED_IN') {
+              toast.success("Successfully signed in!");
+              navigate('/');
+            }
+          } else if (!profileFetched) {
+            // Quick user update without profile fetch for faster loading
+            setUser({
+              ...session.user,
+              profile: {}
+            });
+          }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
+          profileFetched = false;
           toast.success("Signed out successfully");
           navigate('/signin');
         }
@@ -109,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (session?.user) {
           await updateUserWithProfile(session.user);
+          profileFetched = true;
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
