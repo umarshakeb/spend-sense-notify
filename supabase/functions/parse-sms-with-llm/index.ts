@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,8 +14,8 @@ serve(async (req) => {
   try {
     const { messages } = await req.json()
     
-    // Using Hugging Face's free inference API with Qwen2.5-72B-Instruct model
     const huggingFaceKey = Deno.env.get('HUGGINGFACE_API_KEY')
+    console.log('HuggingFace API Key available:', !!huggingFaceKey)
     
     const prompt = `You are an expert SMS transaction parser for Indian and international banking systems. 
 
@@ -46,44 +45,58 @@ Respond with only valid JSON, no explanations.`
     let transactions = []
 
     if (huggingFaceKey) {
-      // Try Hugging Face API first
+      // Try Hugging Face API with text generation endpoint
       try {
-        const response = await fetch('https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct/v1/chat/completions', {
+        console.log('Attempting Hugging Face API call...')
+        const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${huggingFaceKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            messages: [
-              {
-                role: 'system',
-                content: 'You are a precise SMS transaction parser. Return only valid JSON arrays of transactions.'
-              },
-              {
-                role: 'user',
-                content: prompt
-              }
-            ],
-            temperature: 0.1,
-            max_tokens: 2000
+            inputs: prompt,
+            parameters: {
+              max_new_tokens: 1000,
+              temperature: 0.1,
+              return_full_text: false
+            }
           })
         })
 
+        console.log('Hugging Face response status:', response.status)
+        
         if (response.ok) {
           const data = await response.json()
+          console.log('Hugging Face response:', JSON.stringify(data, null, 2))
+          
           try {
-            transactions = JSON.parse(data.choices[0].message.content)
-          } catch (e) {
-            console.error('Failed to parse Hugging Face response:', data.choices[0].message.content)
-            transactions = []
+            // Try to parse the generated text as JSON
+            let generatedText = ''
+            if (Array.isArray(data) && data[0]?.generated_text) {
+              generatedText = data[0].generated_text
+            } else if (data.generated_text) {
+              generatedText = data.generated_text
+            }
+            
+            // Extract JSON from the response
+            const jsonMatch = generatedText.match(/\[[\s\S]*\]/)
+            if (jsonMatch) {
+              transactions = JSON.parse(jsonMatch[0])
+            }
+          } catch (parseError) {
+            console.error('Failed to parse Hugging Face response as JSON:', parseError)
+            console.log('Raw response:', data)
           }
         } else {
-          console.error('Hugging Face API error:', response.statusText)
+          const errorText = await response.text()
+          console.error('Hugging Face API error:', response.status, errorText)
         }
       } catch (error) {
         console.error('Hugging Face API request failed:', error)
       }
+    } else {
+      console.log('No Hugging Face API key found')
     }
 
     // Fallback to local parsing if API fails or no API key
@@ -92,6 +105,7 @@ Respond with only valid JSON, no explanations.`
       transactions = parseMessagesLocally(messages)
     }
 
+    console.log('Final transactions count:', transactions.length)
     return new Response(
       JSON.stringify({ transactions, subscriptions: [] }),
       { 
@@ -149,7 +163,7 @@ function parseMessagesLocally(messages: any[]) {
             type: "expense",
             description: description,
             category: "Transfer",
-            date: `${currentYear}-${new Date().getMonth() + 1}-${new Date().getDate()}`
+            date: `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
           })
           break
         }
@@ -174,7 +188,7 @@ function parseMessagesLocally(messages: any[]) {
             type: "income",
             description: description,
             category: "Transfer",
-            date: `${currentYear}-${new Date().getMonth() + 1}-${new Date().getDate()}`
+            date: `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
           })
           break
         }
