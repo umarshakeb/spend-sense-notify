@@ -16,13 +16,36 @@ export default function AiInsights() {
     fetchCurrency();
   }, []);
 
+  // Adjust amounts based on currency
+  const getAmountsForCurrency = (currency: string) => {
+    if (currency === 'INR') {
+      return {
+        foodExpense: 3750,
+        subscriptionCost: 2400,
+        yearlySavings: 22500,
+        remainingBudget: 10500,
+        totalBudget: 65000
+      };
+    } else {
+      return {
+        foodExpense: 450,
+        subscriptionCost: 89,
+        yearlySavings: 267,
+        remainingBudget: 127,
+        totalBudget: 800
+      };
+    }
+  };
+
+  const amounts = getAmountsForCurrency(currency);
+
   const insights = [
     {
       id: 1,
       type: "spending_pattern",
       icon: TrendingUp,
       title: "Increased Food Spending",
-      description: `Your food expenses have increased by 23% this month compared to last month. You've spent ${formatCurrency(450, currency)} on food delivery alone.`,
+      description: `Your food expenses have increased by 23% this month compared to last month. You've spent ${formatCurrency(amounts.foodExpense, currency)} on food delivery alone.`,
       severity: "medium" as const,
       actionable: true,
     },
@@ -31,7 +54,7 @@ export default function AiInsights() {
       type: "saving_opportunity",
       icon: TrendingDown,
       title: "Subscription Optimization",
-      description: `You have 3 entertainment subscriptions costing ${formatCurrency(89, currency)}/month. Consider consolidating to save ${formatCurrency(267, currency)}/year.`,
+      description: `You have 3 entertainment subscriptions costing ${formatCurrency(amounts.subscriptionCost, currency)}/month. Consider consolidating to save ${formatCurrency(amounts.yearlySavings, currency)}/year.`,
       severity: "low" as const,
       actionable: true,
     },
@@ -40,7 +63,7 @@ export default function AiInsights() {
       type: "budget_alert",
       icon: AlertTriangle,
       title: "Budget Threshold Alert",
-      description: `You're approaching your monthly shopping budget limit. ${formatCurrency(127, currency)} remaining out of ${formatCurrency(800, currency)}.`,
+      description: `You're approaching your monthly shopping budget limit. ${formatCurrency(amounts.remainingBudget, currency)} remaining out of ${formatCurrency(amounts.totalBudget, currency)}.`,
       severity: "high" as const,
       actionable: true,
     },
