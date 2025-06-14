@@ -23,8 +23,8 @@ export function AppLayout({ children, showBackButton = false }: AppLayoutProps) 
       <div className="min-h-screen flex w-full max-w-full overflow-x-hidden">
         <AppSidebar />
         <div className="flex-1 flex flex-col w-full min-w-0 max-w-full">
-          <header className="border-b bg-card sticky top-0 z-10 safe-top w-full">
-            <div className="flex h-12 sm:h-16 items-center px-3 sm:px-4 md:px-6 justify-between pt-safe-top w-full min-w-0">
+          <header className="border-b bg-card sticky top-0 z-10 w-full pt-safe-top">
+            <div className="flex h-12 sm:h-16 items-center px-3 sm:px-4 md:px-6 justify-between w-full min-w-0">
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 {showBackButton && (
                   <Button 
@@ -43,7 +43,7 @@ export function AppLayout({ children, showBackButton = false }: AppLayoutProps) 
               </div>
             </div>
           </header>
-          <main className="flex-1 bg-background w-full min-w-0 max-w-full overflow-x-hidden">{children}</main>
+          <main className="flex-1 bg-background w-full min-w-0 max-w-full overflow-x-hidden pb-safe-bottom">{children}</main>
         </div>
       </div>
     </SidebarProvider>

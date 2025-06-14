@@ -160,7 +160,7 @@ export default function SMSImport() {
               </div>
               
               <div className="text-center space-y-2">
-                <Button onClick={() => navigate('/dashboard')} className="w-full">
+                <Button onClick={() => navigate('/')} className="w-full">
                   View Dashboard
                 </Button>
                 <Button variant="outline" onClick={() => navigate('/transactions')} className="w-full">
