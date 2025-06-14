@@ -19,7 +19,6 @@ import UpdatePassword from "@/pages/UpdatePassword";
 import ConfirmEmail from "@/pages/ConfirmEmail";
 import NotFound from "@/pages/NotFound";
 import SMSImport from "@/pages/SMSImport";
-import Index from "@/pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -32,12 +31,12 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
-            <Route path="/transactions" element={<AppLayout><Transactions /></AppLayout>} />
-            <Route path="/subscriptions" element={<AppLayout><Subscriptions /></AppLayout>} />
-            <Route path="/analytics" element={<AppLayout><Analytics /></AppLayout>} />
-            <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
-            <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
-            <Route path="/sms-import" element={<AppLayout><SMSImport /></AppLayout>} />
+            <Route path="/transactions" element={<AppLayout showBackButton={true}><Transactions /></AppLayout>} />
+            <Route path="/subscriptions" element={<AppLayout showBackButton={true}><Subscriptions /></AppLayout>} />
+            <Route path="/analytics" element={<AppLayout showBackButton={true}><Analytics /></AppLayout>} />
+            <Route path="/profile" element={<AppLayout showBackButton={true}><Profile /></AppLayout>} />
+            <Route path="/settings" element={<AppLayout showBackButton={true}><Settings /></AppLayout>} />
+            <Route path="/sms-import" element={<AppLayout showBackButton={true}><SMSImport /></AppLayout>} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/reset-password" element={<ResetPassword />} />

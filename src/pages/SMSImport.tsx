@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { MessageSquare, Upload, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { parseSMSWithLLM, saveSMSData, generateSampleSMSMessages } from "@/utils/smsParser";
 
 export default function SMSImport() {
@@ -15,6 +16,7 @@ export default function SMSImport() {
     subscriptions: number;
     balance?: number;
   } | null>(null);
+  const navigate = useNavigate();
 
   const handleImportSMS = async () => {
     setIsProcessing(true);
@@ -157,9 +159,12 @@ export default function SMSImport() {
                 </Card>
               </div>
               
-              <div className="text-center">
-                <Button onClick={() => window.location.href = '/dashboard'}>
+              <div className="text-center space-y-2">
+                <Button onClick={() => navigate('/dashboard')} className="w-full">
                   View Dashboard
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/transactions')} className="w-full">
+                  View Transactions
                 </Button>
               </div>
             </div>
