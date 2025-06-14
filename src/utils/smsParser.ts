@@ -48,18 +48,84 @@ export async function parseSMSWithLLM(messages: Array<{ body: string, date?: str
 export async function getUserCurrency(): Promise<string> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return 'USD';
+    if (!user) {
+      console.log('No user found, using locale-based detection');
+      return detectCurrencyFromLocale();
+    }
 
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('currency_code, country_code')
       .eq('id', user.id)
       .single();
 
-    return profile?.currency_code || 'USD';
+    if (error) {
+      console.log('Profile error:', error.message, 'using locale-based detection');
+      return detectCurrencyFromLocale();
+    }
+
+    if (profile?.currency_code) {
+      console.log('Using profile currency:', profile.currency_code);
+      return profile.currency_code;
+    }
+
+    console.log('No profile currency found, using locale-based detection');
+    return detectCurrencyFromLocale();
   } catch (error) {
     console.error('Error getting user currency:', error);
-    return 'USD';
+    return detectCurrencyFromLocale();
+  }
+}
+
+// Detect currency from browser/device locale
+function detectCurrencyFromLocale(): string {
+  try {
+    // Get the user's locale
+    const locale = navigator.language || 'en-US';
+    console.log('Detected locale:', locale);
+    
+    // Map common locales to currencies
+    const localeToCurrency: { [key: string]: string } = {
+      'en-IN': 'INR',
+      'hi-IN': 'INR',
+      'hi': 'INR',
+      'en-US': 'USD',
+      'en-GB': 'GBP',
+      'en-EU': 'EUR',
+      'fr-FR': 'EUR',
+      'de-DE': 'EUR',
+      'es-ES': 'EUR',
+      'it-IT': 'EUR'
+    };
+
+    // Check exact match first
+    if (localeToCurrency[locale]) {
+      console.log('Exact locale match found:', localeToCurrency[locale]);
+      return localeToCurrency[locale];
+    }
+
+    // Check for partial matches (language only)
+    const language = locale.split('-')[0];
+    if (language === 'hi' || locale.includes('IN')) {
+      console.log('Indian locale detected, using INR');
+      return 'INR';
+    }
+
+    // For demo purposes, if timezone suggests India, use INR
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    console.log('Detected timezone:', timezone);
+    
+    if (timezone.includes('Asia/Kolkata') || timezone.includes('Asia/Calcutta')) {
+      console.log('Indian timezone detected, using INR');
+      return 'INR';
+    }
+
+    // Default fallback - for demo purposes, let's use INR to show the Indian experience
+    console.log('Using default currency: INR (demo)');
+    return 'INR';
+  } catch (error) {
+    console.error('Error detecting locale currency:', error);
+    return 'INR'; // Default to INR for demo
   }
 }
 
@@ -72,7 +138,7 @@ export function formatCurrency(amount: number, currencyCode: string): string {
     'EUR': { symbol: '€', locale: 'en-EU' }
   };
 
-  const currency = currencyMap[currencyCode] || currencyMap['USD'];
+  const currency = currencyMap[currencyCode] || currencyMap['INR'];
   
   try {
     return new Intl.NumberFormat(currency.locale, {

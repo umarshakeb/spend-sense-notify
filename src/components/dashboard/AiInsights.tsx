@@ -5,14 +5,19 @@ import { Brain, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { getUserCurrency, formatCurrency } from "@/utils/smsParser";
 
 export default function AiInsights() {
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('INR'); // Default to INR for demo
 
   useEffect(() => {
     const fetchCurrency = async () => {
       console.log('Fetching user currency...');
-      const userCurrency = await getUserCurrency();
-      console.log('User currency detected:', userCurrency);
-      setCurrency(userCurrency);
+      try {
+        const userCurrency = await getUserCurrency();
+        console.log('User currency detected:', userCurrency);
+        setCurrency(userCurrency);
+      } catch (error) {
+        console.error('Error fetching currency:', error);
+        setCurrency('INR'); // Fallback to INR
+      }
     };
     
     fetchCurrency();
