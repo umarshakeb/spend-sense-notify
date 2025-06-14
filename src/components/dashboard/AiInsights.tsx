@@ -9,7 +9,9 @@ export default function AiInsights() {
 
   useEffect(() => {
     const fetchCurrency = async () => {
+      console.log('Fetching user currency...');
       const userCurrency = await getUserCurrency();
+      console.log('User currency detected:', userCurrency);
       setCurrency(userCurrency);
     };
     
@@ -18,6 +20,7 @@ export default function AiInsights() {
 
   // Adjust amounts based on currency
   const getAmountsForCurrency = (currency: string) => {
+    console.log('Getting amounts for currency:', currency);
     if (currency === 'INR') {
       return {
         foodExpense: 3750,
@@ -38,6 +41,7 @@ export default function AiInsights() {
   };
 
   const amounts = getAmountsForCurrency(currency);
+  console.log('Using amounts:', amounts, 'for currency:', currency);
 
   const insights = [
     {
